@@ -180,10 +180,10 @@
         <div class="grid grid-cols-4 gap-4 mb-6">
             <div class="stat-card glass rounded-2xl p-4">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-gray-400 text-xs">Overall Satisfaction</span>
+                    <span class="text-gray-400 text-xs">Net Sentiment</span>
                     <span class="text-xl">📊</span>
                 </div>
-                <div id="statOverall" class="text-2xl font-bold gradient-text">--%</div>
+                <div id="statOverall" class="text-2xl font-bold gradient-text">--</div>
                 <div id="statMentions" class="text-xs text-gray-500">Based on mentions</div>
             </div>
             
@@ -198,8 +198,8 @@
             
             <div class="stat-card glass rounded-2xl p-4">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-gray-400 text-xs">Needs Improvement</span>
-                    <span class="text-xl">🔧</span>
+                    <span class="text-gray-400 text-xs">Needs Attention</span>
+                    <span class="text-xl">⚠️</span>
                 </div>
                 <div id="statWeakness" class="text-lg font-bold text-amber-400">--</div>
                 <div id="statWeaknessScore" class="text-xs text-gray-500">--</div>
@@ -219,6 +219,7 @@
         <div class="flex gap-2 mb-6 flex-wrap">
             <button class="tab-btn active px-4 py-2 rounded-lg text-sm font-medium transition" onclick="showTab('drivers')">📊 Drivers</button>
             <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition" onclick="showTab('satisfaction')">📈 Satisfaction</button>
+            <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition" onclick="showTab('rnd')">🔬 R&D Signals</button>
             <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition" onclick="showTab('comparison')">⚖️ Compare</button>
             <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition" onclick="showTab('demographics')">👥 Demographics</button>
         </div>
@@ -227,23 +228,95 @@
         <div id="tabContent">
             <!-- Drivers Tab -->
             <div id="driversTab" class="tab-panel">
-                <div class="grid grid-cols-2 gap-6">
-                    <div class="glass rounded-2xl p-6">
-                        <h3 class="text-lg font-semibold mb-4">Share of Voice</h3>
-                        <div id="sovChart" style="height: 350px;"></div>
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-2 gap-6 mb-6">
+                    <!-- What Buyers Love -->
+                    <div class="glass rounded-2xl p-6 border border-green-500/20">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="text-2xl">✅</span>
+                            <h3 class="text-lg font-semibold text-green-400">What Buyers Love</h3>
+                        </div>
+                        <div id="praisesContainer" class="space-y-3">
+                            <div class="text-center py-8 text-gray-500">Loading...</div>
+                        </div>
                     </div>
-                    <div class="glass rounded-2xl p-6">
-                        <h3 class="text-lg font-semibold mb-4">Satisfaction by Aspect</h3>
-                        <div id="radarChart" style="height: 350px;"></div>
+                    
+                    <!-- What Needs Attention -->
+                    <div class="glass rounded-2xl p-6 border border-red-500/20">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="text-2xl">⚠️</span>
+                            <h3 class="text-lg font-semibold text-red-400">What Needs Attention</h3>
+                        </div>
+                        <div id="concernsContainer" class="space-y-3">
+                            <div class="text-center py-8 text-gray-500">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Share of Voice Chart -->
+                <div class="glass rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Share of Voice by Aspect</h3>
+                    <div id="sovChart" style="height: 350px; cursor: pointer;"></div>
+                    <p class="text-xs text-gray-500 text-center mt-2">💡 Click on any bar to see sample reviews</p>
+                </div>
+            </div>
+            
+            <!-- Satisfaction Tab - Now shows raw counts -->
+            <div id="satisfactionTab" class="tab-panel hidden">
+                <div class="glass rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-2">Sentiment Breakdown by Aspect</h3>
+                    <p class="text-sm text-gray-400 mb-4">Positive vs Negative mentions (raw counts)</p>
+                    <div id="satisfactionChart" style="height: 400px; cursor: pointer;"></div>
+                    <p class="text-xs text-gray-500 text-center mt-2">💡 Click on green (positive) or red (negative) bars to see sample reviews</p>
+                </div>
+                
+                <!-- Detailed Breakdown Table -->
+                <div class="glass rounded-2xl p-6 mt-6">
+                    <h3 class="text-lg font-semibold mb-4">Detailed Breakdown</h3>
+                    <div id="satisfactionTable" class="overflow-x-auto">
+                        <div class="text-center py-8 text-gray-500">Loading...</div>
                     </div>
                 </div>
             </div>
             
-            <!-- Satisfaction Tab -->
-            <div id="satisfactionTab" class="tab-panel hidden">
-                <div class="glass rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold mb-4">Sentiment Breakdown by Aspect</h3>
-                    <div id="satisfactionChart" style="height: 400px;"></div>
+            <!-- R&D Signals Tab -->
+            <div id="rndTab" class="tab-panel hidden">
+                <div class="grid grid-cols-2 gap-6">
+                    <!-- Feature Requests -->
+                    <div class="glass rounded-2xl p-6">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="text-xl">💡</span>
+                            <h3 class="text-lg font-semibold">Feature Requests</h3>
+                        </div>
+                        <div id="featureRequestsContainer" class="space-y-2 max-h-96 overflow-y-auto">
+                            <div class="text-center py-8 text-gray-500">Loading...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pain Points -->
+                    <div class="glass rounded-2xl p-6">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="text-xl">🔧</span>
+                            <h3 class="text-lg font-semibold">Pain Points & Issues</h3>
+                        </div>
+                        <div id="painPointsContainer" class="space-y-2 max-h-96 overflow-y-auto">
+                            <div class="text-center py-8 text-gray-500">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- All R&D Signals -->
+                <div class="glass rounded-2xl p-6 mt-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">🔬</span>
+                            <h3 class="text-lg font-semibold">All R&D Signals</h3>
+                        </div>
+                        <span id="rndTotalCount" class="text-sm text-gray-400"></span>
+                    </div>
+                    <div id="allRndSignals" class="grid grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+                        <div class="text-center py-8 text-gray-500 col-span-3">Loading...</div>
+                    </div>
                 </div>
             </div>
             
@@ -418,6 +491,28 @@
     
     <!-- Chat Overlay -->
     <div id="chatOverlay" class="fixed inset-0 bg-black/50 z-40 hidden"></div>
+
+    <!-- Sample Reviews Modal -->
+    <div id="reviewsModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/70" onclick="closeReviewsModal()"></div>
+        <div class="relative glass rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-white/10 flex items-center justify-between">
+                <div>
+                    <h3 id="reviewsModalTitle" class="text-lg font-semibold">Sample Reviews</h3>
+                    <p id="reviewsModalSubtitle" class="text-xs text-gray-400">Click on reviews to see why buyers feel this way</p>
+                </div>
+                <button onclick="closeReviewsModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div class="flex gap-2 px-4 pt-3">
+                <button id="reviewsFilterAll" onclick="filterReviews('all')" class="px-3 py-1 rounded-full text-xs bg-purple-500/30 text-purple-300">All</button>
+                <button id="reviewsFilterPositive" onclick="filterReviews('positive')" class="px-3 py-1 rounded-full text-xs bg-white/5 text-gray-400 hover:bg-green-500/20 hover:text-green-300">👍 Positive</button>
+                <button id="reviewsFilterNegative" onclick="filterReviews('negative')" class="px-3 py-1 rounded-full text-xs bg-white/5 text-gray-400 hover:bg-red-500/20 hover:text-red-300">👎 Negative</button>
+            </div>
+            <div id="reviewsModalContent" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <div class="text-center py-8 text-gray-500">Loading reviews...</div>
+            </div>
+        </div>
+    </div>
 
     <script>
         // ═══════════════════════════════════════════
@@ -628,7 +723,8 @@
             await Promise.all([
                 loadDrivers(),
                 loadSatisfaction(),
-                loadDemographics()
+                loadDemographics(),
+                loadRDInsights()
             ]);
         }
         
@@ -651,30 +747,123 @@
                 const data = await res.json();
                 
                 if (data.length > 0) {
-                    // Update stats
+                    // Update stats with raw counts
                     const totalMentions = data.reduce((s, d) => s + d.total_mentions, 0);
-                    const avgSat = Math.round(data.reduce((s, d) => s + d.satisfaction * d.total_mentions, 0) / totalMentions);
+                    const totalPos = data.reduce((s, d) => s + d.positive_count, 0);
+                    const totalNeg = data.reduce((s, d) => s + d.negative_count, 0);
+                    const netSentiment = totalPos - totalNeg;
                     
-                    document.getElementById('statOverall').textContent = avgSat + '%';
+                    document.getElementById('statOverall').textContent = (netSentiment >= 0 ? '+' : '') + formatNumber(netSentiment);
                     document.getElementById('statMentions').textContent = `Based on ${formatNumber(totalMentions)} mentions`;
-                    document.getElementById('contextSatisfaction').textContent = avgSat + '%';
+                    document.getElementById('contextSatisfaction').textContent = formatNumber(totalPos) + ' 👍 / ' + formatNumber(totalNeg) + ' 👎';
                     document.getElementById('contextMentions').textContent = formatNumber(totalMentions);
                     document.getElementById('contextMeta').classList.remove('hidden');
                     
-                    const sorted = [...data].sort((a, b) => b.satisfaction - a.satisfaction);
+                    // Sort by net sentiment (positive - negative)
+                    const sorted = [...data].sort((a, b) => (b.positive_count - b.negative_count) - (a.positive_count - a.negative_count));
                     const strength = sorted[0];
                     const weakness = sorted[sorted.length - 1];
                     
+                    const strengthNet = strength.positive_count - strength.negative_count;
+                    const weaknessNet = weakness.positive_count - weakness.negative_count;
+                    
                     document.getElementById('statStrength').textContent = (ASPECT_ICONS[strength.aspect] || '') + ' ' + strength.aspect;
-                    document.getElementById('statStrengthScore').textContent = strength.satisfaction + '% satisfaction';
+                    document.getElementById('statStrengthScore').textContent = '+' + strengthNet + ' net';
                     document.getElementById('statWeakness').textContent = (ASPECT_ICONS[weakness.aspect] || '') + ' ' + weakness.aspect;
-                    document.getElementById('statWeaknessScore').textContent = weakness.satisfaction + '% satisfaction';
+                    document.getElementById('statWeaknessScore').textContent = (weaknessNet >= 0 ? '+' : '') + weaknessNet + ' net';
+                    
+                    // Populate Praises (top 5 by positive count)
+                    const praises = [...data].sort((a, b) => b.positive_count - a.positive_count).slice(0, 5);
+                    document.getElementById('praisesContainer').innerHTML = praises.map(d => `
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-green-500/10 border border-green-500/20 cursor-pointer hover:bg-green-500/20 transition" onclick="showSampleReviews('${d.aspect}', 'positive')">
+                            <div class="flex items-center gap-2">
+                                <span>${ASPECT_ICONS[d.aspect] || '📊'}</span>
+                                <span class="text-sm">${d.aspect}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-green-400 font-semibold">${formatNumber(d.positive_count)}</span>
+                                <span class="text-xs text-gray-500 ml-1">mentions</span>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    // Populate Concerns (top 5 by negative count)
+                    const concerns = [...data].sort((a, b) => b.negative_count - a.negative_count).slice(0, 5);
+                    document.getElementById('concernsContainer').innerHTML = concerns.map(d => `
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-red-500/10 border border-red-500/20 cursor-pointer hover:bg-red-500/20 transition" onclick="showSampleReviews('${d.aspect}', 'negative')">
+                            <div class="flex items-center gap-2">
+                                <span>${ASPECT_ICONS[d.aspect] || '📊'}</span>
+                                <span class="text-sm">${d.aspect}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-red-400 font-semibold">${formatNumber(d.negative_count)}</span>
+                                <span class="text-xs text-gray-500 ml-1">mentions</span>
+                            </div>
+                        </div>
+                    `).join('');
                     
                     renderSOVChart(data);
-                    renderRadarChart(data);
                 }
             } catch (e) {
                 console.error('Failed to load drivers:', e);
+            }
+        }
+        
+        async function loadRDInsights() {
+            try {
+                const params = new URLSearchParams(
+                    currentModel ? { model: currentModel } : { brand: currentBrand }
+                );
+                
+                const res = await fetch(`/api/rd-insights?${params}`);
+                const data = await res.json();
+                
+                // Feature Requests
+                const featureReqs = data.categorized?.feature_requests || [];
+                document.getElementById('featureRequestsContainer').innerHTML = featureReqs.length > 0 
+                    ? featureReqs.map(f => `
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-white/10 transition">
+                            <span class="text-sm text-gray-300 truncate flex-1">${f.feature}</span>
+                            <span class="text-xs text-purple-400 ml-2 whitespace-nowrap">${f.mentions}x</span>
+                        </div>
+                    `).join('')
+                    : '<p class="text-sm text-gray-500">No feature requests found</p>';
+                
+                // Pain Points
+                const painPoints = data.categorized?.pain_points || [];
+                document.getElementById('painPointsContainer').innerHTML = painPoints.length > 0
+                    ? painPoints.map(p => `
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-red-500/5 hover:bg-red-500/10 transition">
+                            <span class="text-sm text-gray-300 truncate flex-1">${p.feature}</span>
+                            <span class="text-xs text-red-400 ml-2 whitespace-nowrap">${p.mentions}x</span>
+                        </div>
+                    `).join('')
+                    : '<p class="text-sm text-gray-500">No pain points found</p>';
+                
+                // All Signals
+                const allSignals = data.insights || [];
+                document.getElementById('rndTotalCount').textContent = `${allSignals.length} signals found`;
+                document.getElementById('allRndSignals').innerHTML = allSignals.length > 0
+                    ? allSignals.map(s => {
+                        const catColor = {
+                            'feature_request': 'border-purple-500/30 bg-purple-500/5',
+                            'pain_point': 'border-red-500/30 bg-red-500/5',
+                            'improvement': 'border-blue-500/30 bg-blue-500/5',
+                            'competitive': 'border-amber-500/30 bg-amber-500/5'
+                        }[s.category] || 'border-gray-500/30 bg-gray-500/5';
+                        return `
+                            <div class="p-2 rounded-lg border ${catColor} text-xs">
+                                <div class="text-gray-300 truncate" title="${s.feature}">${s.feature}</div>
+                                <div class="text-gray-500 mt-1">${s.mentions} mentions</div>
+                            </div>
+                        `;
+                    }).join('')
+                    : '<p class="text-sm text-gray-500 col-span-3">No R&D signals found</p>';
+                
+            } catch (e) {
+                console.error('Failed to load R&D insights:', e);
+                document.getElementById('featureRequestsContainer').innerHTML = '<p class="text-sm text-red-400">Error loading data</p>';
+                document.getElementById('painPointsContainer').innerHTML = '<p class="text-sm text-red-400">Error loading data</p>';
             }
         }
         
@@ -688,9 +877,73 @@
                 const data = await res.json();
                 
                 renderSatisfactionChart(data);
+                renderSatisfactionTable(data);
             } catch (e) {
                 console.error('Failed to load satisfaction:', e);
             }
+        }
+        
+        function renderSatisfactionTable(data) {
+            if (!data || data.length === 0) {
+                document.getElementById('satisfactionTable').innerHTML = '<p class="text-gray-500 text-center py-4">No data available</p>';
+                return;
+            }
+            
+            // Sort by total mentions
+            const sorted = [...data].sort((a, b) => b.total_mentions - a.total_mentions);
+            
+            let html = `
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-white/10">
+                            <th class="text-left py-2 px-3 text-gray-400 font-medium">Aspect</th>
+                            <th class="text-right py-2 px-3 text-gray-400 font-medium">Total</th>
+                            <th class="text-right py-2 px-3 text-green-400 font-medium">👍 Positive</th>
+                            <th class="text-right py-2 px-3 text-red-400 font-medium">👎 Negative</th>
+                            <th class="text-right py-2 px-3 text-gray-400 font-medium">Net</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            for (const d of sorted) {
+                const net = d.positive_count - d.negative_count;
+                const netColor = net >= 0 ? 'text-green-400' : 'text-red-400';
+                const netSign = net >= 0 ? '+' : '';
+                
+                html += `
+                    <tr class="border-b border-white/5 hover:bg-white/5">
+                        <td class="py-2 px-3">
+                            <span class="mr-2">${ASPECT_ICONS[d.aspect] || '📊'}</span>${d.aspect}
+                        </td>
+                        <td class="text-right py-2 px-3 text-gray-300">${formatNumber(d.total_mentions)}</td>
+                        <td class="text-right py-2 px-3 text-green-400 cursor-pointer hover:underline" onclick="showSampleReviews('${d.aspect}', 'positive')">${formatNumber(d.positive_count)}</td>
+                        <td class="text-right py-2 px-3 text-red-400 cursor-pointer hover:underline" onclick="showSampleReviews('${d.aspect}', 'negative')">${formatNumber(d.negative_count)}</td>
+                        <td class="text-right py-2 px-3 font-semibold ${netColor}">${netSign}${formatNumber(net)}</td>
+                    </tr>
+                `;
+            }
+            
+            // Add totals row
+            const totalMentions = data.reduce((s, d) => s + d.total_mentions, 0);
+            const totalPos = data.reduce((s, d) => s + d.positive_count, 0);
+            const totalNeg = data.reduce((s, d) => s + d.negative_count, 0);
+            const totalNet = totalPos - totalNeg;
+            const totalNetColor = totalNet >= 0 ? 'text-green-400' : 'text-red-400';
+            
+            html += `
+                    <tr class="border-t border-white/20 bg-white/5 font-semibold">
+                        <td class="py-3 px-3 text-purple-400">TOTAL</td>
+                        <td class="text-right py-3 px-3 text-white">${formatNumber(totalMentions)}</td>
+                        <td class="text-right py-3 px-3 text-green-400">${formatNumber(totalPos)}</td>
+                        <td class="text-right py-3 px-3 text-red-400">${formatNumber(totalNeg)}</td>
+                        <td class="text-right py-3 px-3 ${totalNetColor}">${totalNet >= 0 ? '+' : ''}${formatNumber(totalNet)}</td>
+                    </tr>
+                </tbody>
+                </table>
+            `;
+            
+            document.getElementById('satisfactionTable').innerHTML = html;
         }
         
         async function loadDemographics() {
@@ -780,7 +1033,7 @@
             });
             const aspects = Array.from(aspectSet).sort();
             
-            // Calculate item stats
+            // Calculate item stats with raw counts
             const itemStats = items.map(item => {
                 const d = data[item]?.overall || {};
                 const pos = d.positive || 0;
@@ -789,13 +1042,13 @@
                 return {
                     item,
                     totalMentions: total,
-                    posPct: Math.round(pos * 100 / total),
-                    negPct: Math.round(neg * 100 / total),
-                    netScore: Math.round((pos - neg) * 100 / total)
+                    posCount: pos,
+                    negCount: neg,
+                    netSentiment: pos - neg
                 };
             });
             
-            const maxNetScore = Math.max(...itemStats.map(s => s.netScore));
+            const maxNet = Math.max(...itemStats.map(s => s.netSentiment));
             
             // Helper functions
             const getNameSizeClass = (name) => {
@@ -813,25 +1066,80 @@
                 </th>
             `;
             
-            const legendHtml = `
-                <div class="legend">
-                    <span class="legend-text">Low</span>
-                    <div class="legend-box" style="background: rgba(127, 29, 29, 0.5);"></div>
-                    <div class="legend-box" style="background: rgba(161, 98, 7, 0.35);"></div>
-                    <div class="legend-box" style="background: rgba(21, 128, 61, 0.3);"></div>
-                    <div class="legend-box" style="background: rgba(13, 148, 136, 0.4);"></div>
-                    <div class="legend-box" style="background: rgba(13, 148, 136, 0.6);"></div>
-                    <span class="legend-text">High</span>
+            // Helper to get heat class based on net sentiment
+            const getNetHeatClass = (net, maxNet) => {
+                const ratio = maxNet > 0 ? net / maxNet : 0;
+                if (ratio >= 0.9) return 'heat-vhigh';
+                if (ratio >= 0.7) return 'heat-high';
+                if (ratio >= 0.4) return 'heat-med';
+                if (ratio >= 0) return 'heat-low';
+                return 'heat-vlow';
+            };
+            
+            // Calculate wins for verdict
+            const winsCount = {};
+            items.forEach(item => { winsCount[item] = 0; });
+            
+            for (const aspect of aspects) {
+                const scores = items.map(item => {
+                    const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
+                    const pos = aspectData?.positive_count || 0;
+                    const neg = aspectData?.negative_count || 0;
+                    const mentions = aspectData?.total_mentions || 0;
+                    return { 
+                        item, 
+                        netSentiment: mentions >= 10 ? (pos - neg) : -99999,
+                        mentions 
+                    };
+                });
+                const validScores = scores.filter(s => s.netSentiment > -99999);
+                if (validScores.length === 0) continue;
+                
+                const maxNetAspect = Math.max(...validScores.map(s => s.netSentiment));
+                const winner = validScores.find(s => s.netSentiment === maxNetAspect);
+                if (winner) winsCount[winner.item]++;
+            }
+            
+            const totalAspects = aspects.length;
+            const overallWinner = Object.entries(winsCount).sort((a, b) => b[1] - a[1])[0];
+            const mostDiscussed = itemStats.sort((a, b) => b.totalMentions - a.totalMentions)[0];
+            
+            // Resort itemStats by net for display
+            const sortedByNet = [...itemStats].sort((a, b) => b.netSentiment - a.netSentiment);
+            
+            // 0. Verdict Summary Card
+            let html = `
+                <div class="glass rounded-2xl p-6 mb-8 border border-purple-500/30">
+                    <h4 class="text-lg font-semibold text-purple-400 mb-4">📊 Verdict</h4>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-3xl mb-2">🏆</div>
+                            <div class="text-sm text-gray-400">Aspect Wins</div>
+                            <div class="text-lg font-bold text-white mt-1">${overallWinner[0]}</div>
+                            <div class="text-xs text-purple-400">${overallWinner[1]}/${totalAspects} aspects</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl mb-2">💬</div>
+                            <div class="text-sm text-gray-400">Most Discussed</div>
+                            <div class="text-lg font-bold text-white mt-1">${mostDiscussed.item}</div>
+                            <div class="text-xs text-gray-500">${formatNumber(mostDiscussed.totalMentions)} mentions</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl mb-2">${sortedByNet[0].netSentiment >= 0 ? '👍' : '👎'}</div>
+                            <div class="text-sm text-gray-400">Best Net Sentiment</div>
+                            <div class="text-lg font-bold text-white mt-1">${sortedByNet[0].item}</div>
+                            <div class="text-xs ${sortedByNet[0].netSentiment >= 0 ? 'text-green-400' : 'text-red-400'}">
+                                ${sortedByNet[0].netSentiment >= 0 ? '+' : ''}${formatNumber(sortedByNet[0].netSentiment)} net
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
             
-            // 1. Satisfaction Score Section
-            let html = `
+            // 1. Overview Section (raw counts)
+            html += `
                 <div class="mb-8">
-                    <div class="flex justify-between items-center mb-4">
-                        <h4 class="text-md font-semibold text-purple-400">Satisfaction Score</h4>
-                        ${legendHtml}
-                    </div>
+                    <h4 class="text-md font-semibold text-purple-400 mb-4">Overview</h4>
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -841,20 +1149,25 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="text-gray-300 font-medium">Review Count</td>
+                                <td class="text-gray-300 font-medium">Total Mentions</td>
                                 ${itemStats.map(s => `<td><span class="heat-cell heat-high">${formatNumber(s.totalMentions)}</span></td>`).join('')}
                             </tr>
                             <tr>
-                                <td class="text-gray-300 font-medium">+ve Sentiment %</td>
-                                ${itemStats.map(s => `<td><span class="heat-cell ${getHeatClass(s.posPct)}">${s.posPct}%</span></td>`).join('')}
+                                <td class="text-gray-300 font-medium">👍 Positive</td>
+                                ${itemStats.map(s => `<td><span class="text-green-400 font-medium">${formatNumber(s.posCount)}</span></td>`).join('')}
                             </tr>
                             <tr>
-                                <td class="text-gray-300 font-medium">-ve Sentiment %</td>
-                                ${itemStats.map(s => `<td><span class="heat-cell ${getHeatClassInverse(s.negPct)}">${s.negPct}%</span></td>`).join('')}
+                                <td class="text-gray-300 font-medium">👎 Negative</td>
+                                ${itemStats.map(s => `<td><span class="text-red-400 font-medium">${formatNumber(s.negCount)}</span></td>`).join('')}
                             </tr>
                             <tr>
-                                <td class="text-gray-300 font-medium">Net Sentiment Score</td>
-                                ${itemStats.map(s => `<td><span class="heat-cell ${s.netScore === maxNetScore ? 'heat-vhigh' : getHeatClass(s.netScore + 50)}">${s.netScore}%</span></td>`).join('')}
+                                <td class="text-gray-300 font-medium">Net Sentiment</td>
+                                ${itemStats.map(s => {
+                                    const isMax = s.netSentiment === maxNet;
+                                    const sign = s.netSentiment >= 0 ? '+' : '';
+                                    const color = s.netSentiment >= 0 ? 'text-green-400' : 'text-red-400';
+                                    return `<td><span class="${color} font-bold ${isMax ? 'underline' : ''}">${sign}${formatNumber(s.netSentiment)}</span></td>`;
+                                }).join('')}
                             </tr>
                         </tbody>
                     </table>
@@ -866,13 +1179,10 @@
                 return data[item]?.aspects?.reduce((s, a) => s + (a.total_mentions || 0), 0) || 1;
             });
             
-            // 2. Driver Analysis Section (Share of Voice)
+            // 2. Driver Analysis Section (Share of Voice - keep as % since it's proportional)
             html += `
                 <div class="mb-8">
-                    <div class="flex justify-between items-center mb-4">
-                        <h4 class="text-md font-semibold text-purple-400">Driver Analysis</h4>
-                        ${legendHtml}
-                    </div>
+                    <h4 class="text-md font-semibold text-purple-400 mb-4">Driver Analysis (Share of Voice)</h4>
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -895,7 +1205,6 @@
                     }
                 });
                 
-                // Skip if no items have >= 10 mentions for this aspect
                 if (validCount === 0) continue;
                 
                 const avgSov = totalSov / Math.max(validCount, 1);
@@ -917,18 +1226,17 @@
             
             html += `</tbody></table></div>`;
             
-            // 3. Aspect-wise Comparison Section (satisfaction scores with winner)
+            // 3. Aspect-wise Comparison Section (Raw counts with net)
             html += `
                 <div class="mb-8">
-                    <div class="flex justify-between items-center mb-4">
-                        <h4 class="text-md font-semibold text-purple-400">Aspect-wise Comparison</h4>
-                    </div>
+                    <h4 class="text-md font-semibold text-purple-400 mb-4">Aspect-wise Comparison</h4>
+                    <p class="text-xs text-gray-500 mb-3">Shows 👍 Positive / 👎 Negative counts with net difference. Higher net = better.</p>
                     <table class="data-table">
                         <thead>
                             <tr>
                                 <th>Aspect</th>
                                 ${items.map((item, i) => getItemHeader(item, i)).join('')}
-                                <th class="text-center" style="width: 100px;">Winner</th>
+                                <th class="text-center" style="width: 80px;">Winner</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -937,9 +1245,14 @@
             for (const aspect of aspects) {
                 const aspectInfo = items.map(item => {
                     const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
+                    const pos = aspectData?.positive_count || 0;
+                    const neg = aspectData?.negative_count || 0;
+                    const mentions = aspectData?.total_mentions || 0;
                     return {
-                        satisfaction: aspectData?.satisfaction || 0,
-                        mentions: aspectData?.total_mentions || 0
+                        posCount: pos,
+                        negCount: neg,
+                        netSentiment: pos - neg,
+                        mentions: mentions
                     };
                 });
                 
@@ -947,55 +1260,64 @@
                 const validScores = aspectInfo.filter(a => a.mentions >= 10);
                 if (validScores.length === 0) continue;
                 
-                const scores = aspectInfo.map(a => a.mentions >= 10 ? a.satisfaction : -1);
-                const maxScore = Math.max(...scores.filter(s => s >= 0));
+                const nets = aspectInfo.map(a => a.mentions >= 10 ? a.netSentiment : -99999);
+                const maxNet = Math.max(...nets.filter(n => n > -99999));
                 
-                const winnerIdx = scores.indexOf(maxScore);
-                const winner = maxScore > 0 ? items[winnerIdx] : '-';
+                const winnerIdx = nets.indexOf(maxNet);
+                const winner = maxNet > -99999 ? items[winnerIdx] : '-';
                 
                 html += `<tr><td class="text-gray-300 font-medium">${ASPECT_ICONS[aspect] || ''} ${aspect}</td>`;
                 aspectInfo.forEach((info, idx) => {
                     if (info.mentions < 10) {
                         html += `<td><span class="heat-cell heat-neutral">--</span></td>`;
                     } else {
-                        const isWinner = info.satisfaction === maxScore && info.satisfaction > 0;
-                        html += `<td><span class="heat-cell ${isWinner ? 'winner-cell' : getHeatClass(info.satisfaction)}">${info.satisfaction}%</span></td>`;
+                        const isWinner = info.netSentiment === maxNet && info.mentions >= 10;
+                        const sign = info.netSentiment >= 0 ? '+' : '';
+                        // Show 👍/👎 format with compact numbers
+                        html += `<td class="${isWinner ? 'winner-cell rounded' : ''}">
+                            <div class="text-xs">
+                                <span class="text-green-400">👍${formatNumber(info.posCount)}</span>
+                                <span class="text-gray-500 mx-1">/</span>
+                                <span class="text-red-400">👎${formatNumber(info.negCount)}</span>
+                            </div>
+                            <div class="text-xs mt-0.5 ${info.netSentiment >= 0 ? 'text-green-400' : 'text-red-400'} font-medium">${sign}${info.netSentiment} net</div>
+                        </td>`;
                     }
                 });
-                html += `<td class="text-purple-400 font-medium">${winner}</td></tr>`;
+                html += `<td class="text-purple-400 font-medium text-sm">${winner}</td></tr>`;
             }
             
             html += `</tbody></table></div>`;
             
-            // 4. Attribute Wins Section
+            // 4. Attribute Wins Section (using net sentiment)
             const wins = {};
             items.forEach(item => { wins[item] = []; });
             
             for (const aspect of aspects) {
                 const scores = items.map(item => {
                     const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
+                    const pos = aspectData?.positive_count || 0;
+                    const neg = aspectData?.negative_count || 0;
                     const mentions = aspectData?.total_mentions || 0;
                     return { 
                         item, 
-                        satisfaction: mentions >= 10 ? (aspectData?.satisfaction || 0) : -1,
+                        netSentiment: mentions >= 10 ? (pos - neg) : -99999,
                         mentions 
                     };
                 });
-                const validScores = scores.filter(s => s.satisfaction >= 0);
+                const validScores = scores.filter(s => s.netSentiment > -99999);
                 if (validScores.length === 0) continue;
                 
-                const maxScore = Math.max(...validScores.map(s => s.satisfaction));
+                const maxNet = Math.max(...validScores.map(s => s.netSentiment));
                 
-                if (maxScore > 0) {
-                    const winner = validScores.find(s => s.satisfaction === maxScore);
-                    if (winner) wins[winner.item].push({ aspect, score: winner.satisfaction });
-                }
+                const winner = validScores.find(s => s.netSentiment === maxNet);
+                if (winner) wins[winner.item].push({ aspect, net: winner.netSentiment });
             }
             
             html += `
                 <div>
-                    <h4 class="text-md font-semibold text-purple-400 mb-2">Attribute Wins by ${compareMode === 'brand' ? 'Brand' : 'Model'} 🏆</h4>
-                    <p class="text-xs text-gray-500 mb-4">Attributes listed under the ${compareMode} that scores highest on them.</p>
+                    <h4 class="text-md font-semibold text-purple-400 mb-2">Attribute Wins 🏆</h4>
+                    <p class="text-xs text-gray-500 mb-4">Aspects where each ${compareMode === 'brand' ? 'brand' : 'model'} has the best net sentiment.</p>
                     <div class="grid grid-cols-${items.length} gap-4">
             `;
             
@@ -1010,7 +1332,11 @@
                             <span class="text-gray-500 flex-shrink-0">(${itemWins.length})</span>
                         </h4>
                         ${itemWins.length > 0 
-                            ? itemWins.map(w => `<div class="win-item"><span class="aspect">${ASPECT_ICONS[w.aspect] || ''} ${w.aspect}</span><span class="score">${w.score}%</span></div>`).join('')
+                            ? itemWins.map(w => {
+                                const sign = w.net >= 0 ? '+' : '';
+                                const color = w.net >= 0 ? 'text-green-400' : 'text-red-400';
+                                return `<div class="win-item"><span class="aspect">${ASPECT_ICONS[w.aspect] || ''} ${w.aspect}</span><span class="score ${color}">${sign}${w.net}</span></div>`;
+                            }).join('')
                             : '<p class="text-xs text-gray-500 mt-2">No winning attributes</p>'
                         }
                     </div>
@@ -1027,11 +1353,25 @@
         function renderSOVChart(data) {
             if (charts.sov) charts.sov.destroy();
             
+            // Store aspect data for click handler
+            window.sovAspects = data.map(d => d.aspect);
+            
             const options = {
                 series: [{
                     data: data.map(d => d.share_of_voice)
                 }],
-                chart: { type: 'bar', height: 350, toolbar: { show: false }, background: 'transparent' },
+                chart: { 
+                    type: 'bar', 
+                    height: 350, 
+                    toolbar: { show: false }, 
+                    background: 'transparent',
+                    events: {
+                        dataPointSelection: function(event, chartContext, config) {
+                            const aspect = window.sovAspects[config.dataPointIndex];
+                            showSampleReviews(aspect, 'all');
+                        }
+                    }
+                },
                 plotOptions: { bar: { horizontal: true, borderRadius: 4 } },
                 colors: ['#667eea'],
                 xaxis: { 
@@ -1040,40 +1380,35 @@
                 },
                 yaxis: { labels: { style: { colors: '#e2e8f0' } } },
                 dataLabels: { enabled: true, formatter: v => v + '%', style: { colors: ['#fff'] } },
-                tooltip: { theme: 'dark' },
-                grid: { borderColor: 'rgba(255,255,255,0.1)' }
+                tooltip: { 
+                    theme: 'dark',
+                    custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                        const aspect = window.sovAspects[dataPointIndex];
+                        const value = series[seriesIndex][dataPointIndex];
+                        return `<div class="px-3 py-2 bg-gray-800 rounded text-sm">
+                            <div class="font-medium">${aspect}</div>
+                            <div class="text-gray-400">Share of Voice: ${value}%</div>
+                            <div class="text-xs text-purple-400 mt-1">Click to see reviews →</div>
+                        </div>`;
+                    }
+                },
+                grid: { borderColor: 'rgba(255,255,255,0.1)' },
+                states: {
+                    hover: { filter: { type: 'lighten', value: 0.1 } }
+                }
             };
             
             charts.sov = new ApexCharts(document.getElementById('sovChart'), options);
             charts.sov.render();
         }
         
-        function renderRadarChart(data) {
-            if (charts.radar) charts.radar.destroy();
-            
-            const options = {
-                series: [{
-                    name: 'Satisfaction',
-                    data: data.map(d => d.satisfaction)
-                }],
-                chart: { type: 'radar', height: 350, toolbar: { show: false }, background: 'transparent' },
-                colors: ['#667eea'],
-                xaxis: { categories: data.map(d => d.aspect) },
-                yaxis: { max: 100, tickAmount: 5 },
-                stroke: { width: 2 },
-                fill: { opacity: 0.3 },
-                markers: { size: 4 },
-                tooltip: { theme: 'dark' }
-            };
-            
-            charts.radar = new ApexCharts(document.getElementById('radarChart'), options);
-            charts.radar.render();
-        }
-        
         function renderSatisfactionChart(data) {
             if (charts.satisfaction) charts.satisfaction.destroy();
             
             const sorted = [...data].sort((a, b) => b.satisfaction - a.satisfaction);
+            
+            // Store aspect data for click handler
+            window.satisfactionAspects = sorted.map(d => d.aspect);
             
             const options = {
                 series: [{
@@ -1083,7 +1418,21 @@
                     name: 'Negative',
                     data: sorted.map(d => -d.negative_count)
                 }],
-                chart: { type: 'bar', height: 400, stacked: true, toolbar: { show: false }, background: 'transparent' },
+                chart: { 
+                    type: 'bar', 
+                    height: 400, 
+                    stacked: true, 
+                    toolbar: { show: false }, 
+                    background: 'transparent',
+                    events: {
+                        dataPointSelection: function(event, chartContext, config) {
+                            const aspectIndex = config.dataPointIndex;
+                            const aspect = window.satisfactionAspects[aspectIndex];
+                            const sentiment = config.seriesIndex === 0 ? 'positive' : 'negative';
+                            showSampleReviews(aspect, sentiment);
+                        }
+                    }
+                },
                 colors: ['#10b981', '#ef4444'],
                 plotOptions: { bar: { horizontal: true, borderRadius: 4 } },
                 xaxis: { 
@@ -1096,10 +1445,24 @@
                 yaxis: { labels: { style: { colors: '#e2e8f0' } } },
                 tooltip: { 
                     theme: 'dark',
-                    y: { formatter: v => Math.abs(v) + ' mentions' }
+                    y: { formatter: v => Math.abs(v) + ' mentions' },
+                    custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                        const aspect = window.satisfactionAspects[dataPointIndex];
+                        const value = Math.abs(series[seriesIndex][dataPointIndex]);
+                        const type = seriesIndex === 0 ? 'Positive' : 'Negative';
+                        return `<div class="px-3 py-2 bg-gray-800 rounded text-sm">
+                            <div class="font-medium">${aspect}</div>
+                            <div class="text-gray-400">${type}: ${value} mentions</div>
+                            <div class="text-xs text-purple-400 mt-1">Click to see reviews →</div>
+                        </div>`;
+                    }
                 },
                 legend: { labels: { colors: '#e2e8f0' } },
-                grid: { borderColor: 'rgba(255,255,255,0.1)' }
+                grid: { borderColor: 'rgba(255,255,255,0.1)' },
+                states: {
+                    hover: { filter: { type: 'lighten', value: 0.1 } },
+                    active: { filter: { type: 'darken', value: 0.2 } }
+                }
             };
             
             charts.satisfaction = new ApexCharts(document.getElementById('satisfactionChart'), options);
@@ -1349,6 +1712,126 @@
         
         function expandChat() {
             document.getElementById('chatPanel').classList.remove('collapsed');
+        }
+        
+        // ═══════════════════════════════════════════
+        // SAMPLE REVIEWS MODAL
+        // ═══════════════════════════════════════════
+        let currentReviewsAspect = null;
+        let currentReviewsFilter = 'all';
+        
+        async function showSampleReviews(aspect, sentiment = 'all') {
+            if (!currentBrand && !currentModel) return;
+            
+            currentReviewsAspect = aspect;
+            currentReviewsFilter = sentiment;
+            
+            // Update modal title
+            const target = currentModel || currentBrand;
+            document.getElementById('reviewsModalTitle').textContent = `${ASPECT_ICONS[aspect] || ''} ${aspect} - Sample Reviews`;
+            document.getElementById('reviewsModalSubtitle').textContent = `What ${target} buyers are saying about ${aspect}`;
+            
+            // Show modal with loading state
+            document.getElementById('reviewsModal').classList.remove('hidden');
+            document.getElementById('reviewsModalContent').innerHTML = `
+                <div class="text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500 mb-4"></div>
+                    <p class="text-gray-400">Loading reviews...</p>
+                </div>
+            `;
+            
+            // Update filter buttons
+            updateReviewFilterButtons(sentiment);
+            
+            try {
+                const params = new URLSearchParams({
+                    aspect: aspect,
+                    sentiment: sentiment,
+                    limit: 8,
+                    ...(currentModel ? { model: currentModel } : { brand: currentBrand })
+                });
+                
+                const res = await fetch(`/api/sample-reviews?${params}`);
+                const data = await res.json();
+                
+                renderReviews(data.reviews, aspect);
+            } catch (e) {
+                console.error('Failed to load reviews:', e);
+                document.getElementById('reviewsModalContent').innerHTML = `
+                    <div class="text-center py-8 text-red-400">
+                        <p>Failed to load reviews</p>
+                        <p class="text-xs text-gray-500 mt-2">${e.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function renderReviews(reviews, aspect) {
+            if (!reviews || reviews.length === 0) {
+                document.getElementById('reviewsModalContent').innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <p>No reviews found for this aspect</p>
+                        <p class="text-xs mt-2">Try selecting a different filter or aspect</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            reviews.forEach(review => {
+                const sentimentColor = review.sentiment === 'positive' ? 'border-green-500/30 bg-green-500/5' : 
+                                       review.sentiment === 'negative' ? 'border-red-500/30 bg-red-500/5' : 
+                                       'border-gray-500/30 bg-gray-500/5';
+                const sentimentIcon = review.sentiment === 'positive' ? '👍' : 
+                                      review.sentiment === 'negative' ? '👎' : '➖';
+                
+                html += `
+                    <div class="border ${sentimentColor} rounded-xl p-4">
+                        <div class="flex items-start gap-3">
+                            <span class="text-lg">${sentimentIcon}</span>
+                            <div class="flex-1">
+                                <p class="text-sm text-gray-200 leading-relaxed">${escapeHtml(review.text)}</p>
+                                <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                                    <span>${review.model || review.brand}</span>
+                                    ${review.subreddit ? `<span>r/${review.subreddit}</span>` : ''}
+                                    ${review.date ? `<span>${review.date}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('reviewsModalContent').innerHTML = html;
+        }
+        
+        function filterReviews(sentiment) {
+            if (currentReviewsAspect) {
+                showSampleReviews(currentReviewsAspect, sentiment);
+            }
+        }
+        
+        function updateReviewFilterButtons(active) {
+            const buttons = ['All', 'Positive', 'Negative'];
+            buttons.forEach(btn => {
+                const el = document.getElementById(`reviewsFilter${btn}`);
+                if (btn.toLowerCase() === active) {
+                    el.className = 'px-3 py-1 rounded-full text-xs bg-purple-500/30 text-purple-300';
+                } else {
+                    el.className = 'px-3 py-1 rounded-full text-xs bg-white/5 text-gray-400 hover:bg-white/10';
+                }
+            });
+        }
+        
+        function closeReviewsModal() {
+            document.getElementById('reviewsModal').classList.add('hidden');
+            currentReviewsAspect = null;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
     </script>
 </body>

@@ -393,7 +393,10 @@ async def get_drivers(
         # Calculate metrics
         grand_total = aggregated['total_mentions'].sum()
         aggregated['share_of_voice'] = (aggregated['total_mentions'] * 100.0 / grand_total).round(0)
-        aggregated['satisfaction'] = (aggregated['positive_count'] * 100.0 / aggregated['total_mentions'].replace(0, 1)).round(0)
+        
+        # Satisfaction = positive / (positive + negative) - ignores neutral mentions
+        sentiment_total = aggregated['positive_count'] + aggregated['negative_count']
+        aggregated['satisfaction'] = (aggregated['positive_count'] * 100.0 / sentiment_total.replace(0, 1)).round(0)
         
         # Add icons and sort
         aggregated['icon'] = aggregated['aspect'].map(ASPECT_ICONS)
@@ -464,8 +467,9 @@ async def get_satisfaction(
         if aggregated.empty:
             return []
         
-        # Calculate satisfaction
-        aggregated['satisfaction'] = (aggregated['positive_count'] * 100.0 / aggregated['total_mentions'].replace(0, 1)).round(0)
+        # Calculate satisfaction = positive / (positive + negative) - ignores neutral mentions
+        sentiment_total = aggregated['positive_count'] + aggregated['negative_count']
+        aggregated['satisfaction'] = (aggregated['positive_count'] * 100.0 / sentiment_total.replace(0, 1)).round(0)
         aggregated['icon'] = aggregated['aspect'].map(ASPECT_ICONS)
         aggregated = aggregated.sort_values('total_mentions', ascending=False)
         
@@ -590,12 +594,18 @@ async def get_comparison(
                 # Filter out aspects with < MIN_MENTIONS_THRESHOLD mentions
                 agg = agg[agg['total_mentions'] >= MIN_MENTIONS_THRESHOLD]
                 
-                agg['satisfaction'] = (agg['positive_count'] * 100.0 / agg['total_mentions'].replace(0, 1)).round(0)
+                # Satisfaction = positive / (positive + negative) - ignores neutral mentions
+                sentiment_total = agg['positive_count'] + agg['negative_count']
+                agg['satisfaction'] = (agg['positive_count'] * 100.0 / sentiment_total.replace(0, 1)).round(0)
                 agg['aspect_name'] = agg['aspect']
                 
                 total_pos = int(agg['positive_count'].sum())
                 total_neg = int(agg['negative_count'].sum())
                 total_mentions = int(agg['total_mentions'].sum())
+                
+                # Overall satisfaction = positive / (positive + negative)
+                overall_sentiment_total = total_pos + total_neg
+                overall_satisfaction = round(total_pos * 100 / max(overall_sentiment_total, 1))
                 
                 comparison[item] = {
                     "aspects": clean_dataframe(agg).to_dict(orient='records'),
@@ -603,7 +613,7 @@ async def get_comparison(
                         "positive": total_pos,
                         "negative": total_neg,
                         "total_mentions": total_mentions,
-                        "satisfaction": round(total_pos * 100 / max(total_mentions, 1))
+                        "satisfaction": overall_satisfaction
                     }
                 }
             else:
@@ -703,3 +713,193 @@ async def authenticate(request: AuthRequest):
         return {"success": True, "message": "Full access granted"}
     else:
         return {"success": False, "message": "Invalid key"}
+
+# ─────────────────────────────────────────
+# SAMPLE REVIEWS ENDPOINT
+# ─────────────────────────────────────────
+@app.get("/api/sample-reviews")
+async def get_sample_reviews(
+    brand: Optional[str] = None,
+    model: Optional[str] = None,
+    aspect: str = None,
+    sentiment: str = "all",  # "positive", "negative", "all"
+    limit: int = 5
+):
+    """
+    Get sample review comments for a specific brand/model and aspect.
+    Used to show WHY an aspect has positive/negative sentiment.
+    """
+    c = get_client()
+    if not c:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    if not aspect:
+        raise HTTPException(status_code=400, detail="Aspect is required")
+    
+    if not brand and not model:
+        raise HTTPException(status_code=400, detail="Either brand or model required")
+    
+    vehicle_filter = get_vehicle_filter()
+    
+    # Build WHERE clause
+    where_clauses = [vehicle_filter]
+    
+    if model:
+        where_clauses.append(f"a.model = '{model.replace(chr(39), chr(39)+chr(39))}'")
+    elif brand:
+        where_clauses.append(f"a.brand = '{brand.replace(chr(39), chr(39)+chr(39))}'")
+    
+    # Normalize the aspect name to match what might be in DB
+    aspect_variations = [aspect]
+    # Add lowercase version
+    aspect_variations.append(aspect.lower())
+    # Check ASPECT_MAPPING for reverse lookup
+    for raw, standard in ASPECT_MAPPING.items():
+        if standard == aspect:
+            aspect_variations.append(raw)
+    
+    aspect_sql = "', '".join(aspect_variations)
+    where_clauses.append(f"LOWER(a.aspect) IN ('{aspect_sql.lower()}')")
+    
+    # Filter by sentiment if specified
+    if sentiment == "positive":
+        where_clauses.append("a.sentiment = 1")
+    elif sentiment == "negative":
+        where_clauses.append("a.sentiment = -1")
+    
+    # Query to get sample reviews with their text
+    query = f"""
+    SELECT DISTINCT
+        r.comment_text,
+        a.aspect,
+        a.sentiment,
+        a.brand,
+        a.model,
+        r.subreddit,
+        r.comment_date
+    FROM `{PROJECT}.{DATASET}.aspects` a
+    JOIN `{PROJECT}.{DATASET}.reviews` r ON a.comment_id = r.comment_id
+    WHERE {' AND '.join(where_clauses)}
+        AND r.comment_text IS NOT NULL
+        AND LENGTH(r.comment_text) > 50
+        AND LENGTH(r.comment_text) < 1000
+    ORDER BY 
+        CASE WHEN a.sentiment = -1 THEN 0 ELSE 1 END,  -- Negative first if "all"
+        LENGTH(r.comment_text) DESC
+    LIMIT {min(limit, 10)}
+    """
+    
+    try:
+        result = c.query(query).to_dataframe()
+        
+        if result.empty:
+            return {"reviews": [], "aspect": aspect, "count": 0}
+        
+        reviews = []
+        for _, row in result.iterrows():
+            reviews.append({
+                "text": row['comment_text'][:500] + ('...' if len(row['comment_text']) > 500 else ''),
+                "sentiment": "positive" if row['sentiment'] == 1 else "negative" if row['sentiment'] == -1 else "neutral",
+                "brand": row['brand'],
+                "model": row['model'],
+                "subreddit": row.get('subreddit', ''),
+                "date": str(row.get('comment_date', ''))[:10]
+            })
+        
+        return {
+            "reviews": reviews,
+            "aspect": aspect,
+            "count": len(reviews),
+            "query_brand": brand,
+            "query_model": model
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ─────────────────────────────────────────
+# R&D INSIGHTS ENDPOINT
+# ─────────────────────────────────────────
+@app.get("/api/rd-insights")
+async def get_rd_insights(
+    brand: Optional[str] = None,
+    model: Optional[str] = None,
+    limit: int = 50
+):
+    """
+    Get R&D insights - feature requests, pain points, improvements.
+    """
+    c = get_client()
+    if not c:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    if not brand and not model:
+        raise HTTPException(status_code=400, detail="Either brand or model required")
+    
+    vehicle_filter = get_vehicle_filter()
+    where_clauses = [vehicle_filter, "features_sought IS NOT NULL", "features_sought != ''"]
+    
+    if model:
+        where_clauses.append(f"model = '{model.replace(chr(39), chr(39)+chr(39))}'")
+    elif brand:
+        where_clauses.append(f"brand = '{brand.replace(chr(39), chr(39)+chr(39))}'")
+    
+    # Get feature requests with counts
+    query = f"""
+    SELECT 
+        features_sought,
+        COUNT(*) as mention_count,
+        COUNT(DISTINCT model) as models_affected
+    FROM `{PROJECT}.{DATASET}.rd_insights`
+    WHERE {' AND '.join(where_clauses)}
+    GROUP BY features_sought
+    ORDER BY mention_count DESC
+    LIMIT {min(limit, 100)}
+    """
+    
+    try:
+        result = c.query(query).to_dataframe()
+        result = clean_dataframe(result)
+        
+        if result.empty:
+            return {"insights": [], "total": 0}
+        
+        # Categorize insights
+        insights = []
+        for _, row in result.iterrows():
+            feature = str(row['features_sought']).strip()
+            if not feature or feature == 'nan':
+                continue
+                
+            # Simple categorization based on keywords
+            category = "feature_request"
+            feature_lower = feature.lower()
+            
+            if any(w in feature_lower for w in ['problem', 'issue', 'bad', 'poor', 'worst', 'fail', 'broke']):
+                category = "pain_point"
+            elif any(w in feature_lower for w in ['need', 'want', 'should', 'missing', 'add', 'include']):
+                category = "improvement"
+            elif any(w in feature_lower for w in ['vs', 'better than', 'compared', 'competitor']):
+                category = "competitive"
+            
+            insights.append({
+                "feature": feature,
+                "mentions": int(row['mention_count']),
+                "models_affected": int(row['models_affected']),
+                "category": category
+            })
+        
+        # Group by category
+        categorized = {
+            "feature_requests": [i for i in insights if i['category'] == 'feature_request'][:15],
+            "pain_points": [i for i in insights if i['category'] == 'pain_point'][:10],
+            "improvements": [i for i in insights if i['category'] == 'improvement'][:10],
+            "competitive": [i for i in insights if i['category'] == 'competitive'][:10]
+        }
+        
+        return {
+            "insights": insights[:50],
+            "categorized": categorized,
+            "total": len(insights)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
