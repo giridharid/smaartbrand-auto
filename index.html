@@ -180,11 +180,11 @@
         <div class="grid grid-cols-4 gap-4 mb-6">
             <div class="stat-card glass rounded-2xl p-4">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-gray-400 text-xs">Net Sentiment</span>
-                    <span class="text-xl">📊</span>
+                    <span class="text-gray-400 text-xs">Total Mentions</span>
+                    <span class="text-xl">💬</span>
                 </div>
                 <div id="statOverall" class="text-2xl font-bold gradient-text">--</div>
-                <div id="statMentions" class="text-xs text-gray-500">Based on mentions</div>
+                <div id="statMentions" class="text-xs text-gray-500">from Reddit discussions</div>
             </div>
             
             <div class="stat-card glass rounded-2xl p-4">
@@ -261,18 +261,12 @@
                 </div>
             </div>
             
-            <!-- Satisfaction Tab - Now shows raw counts -->
+            <!-- Satisfaction Tab - Now shows raw counts table only -->
             <div id="satisfactionTab" class="tab-panel hidden">
-                <div class="glass rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold mb-2">Sentiment Breakdown by Aspect</h3>
-                    <p class="text-sm text-gray-400 mb-4">Positive vs Negative mentions (raw counts)</p>
-                    <div id="satisfactionChart" style="height: 400px; cursor: pointer;"></div>
-                    <p class="text-xs text-gray-500 text-center mt-2">💡 Click on green (positive) or red (negative) bars to see sample reviews</p>
-                </div>
-                
                 <!-- Detailed Breakdown Table -->
-                <div class="glass rounded-2xl p-6 mt-6">
-                    <h3 class="text-lg font-semibold mb-4">Detailed Breakdown</h3>
+                <div class="glass rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-2">Aspect Breakdown</h3>
+                    <p class="text-sm text-gray-400 mb-4">Positive vs Negative mentions by aspect. Click counts to see sample reviews.</p>
                     <div id="satisfactionTable" class="overflow-x-auto">
                         <div class="text-center py-8 text-gray-500">Loading...</div>
                     </div>
@@ -751,26 +745,24 @@
                     const totalMentions = data.reduce((s, d) => s + d.total_mentions, 0);
                     const totalPos = data.reduce((s, d) => s + d.positive_count, 0);
                     const totalNeg = data.reduce((s, d) => s + d.negative_count, 0);
-                    const netSentiment = totalPos - totalNeg;
                     
-                    document.getElementById('statOverall').textContent = (netSentiment >= 0 ? '+' : '') + formatNumber(netSentiment);
-                    document.getElementById('statMentions').textContent = `Based on ${formatNumber(totalMentions)} mentions`;
+                    // Show total mentions in main stat card
+                    document.getElementById('statOverall').textContent = formatNumber(totalMentions);
+                    document.getElementById('statMentions').textContent = `👍 ${formatNumber(totalPos)} / 👎 ${formatNumber(totalNeg)}`;
                     document.getElementById('contextSatisfaction').textContent = formatNumber(totalPos) + ' 👍 / ' + formatNumber(totalNeg) + ' 👎';
                     document.getElementById('contextMentions').textContent = formatNumber(totalMentions);
                     document.getElementById('contextMeta').classList.remove('hidden');
                     
-                    // Sort by net sentiment (positive - negative)
-                    const sorted = [...data].sort((a, b) => (b.positive_count - b.negative_count) - (a.positive_count - a.negative_count));
-                    const strength = sorted[0];
-                    const weakness = sorted[sorted.length - 1];
-                    
-                    const strengthNet = strength.positive_count - strength.negative_count;
-                    const weaknessNet = weakness.positive_count - weakness.negative_count;
+                    // Sort by positive count for strength, negative count for weakness
+                    const sortedByPos = [...data].sort((a, b) => b.positive_count - a.positive_count);
+                    const sortedByNeg = [...data].sort((a, b) => b.negative_count - a.negative_count);
+                    const strength = sortedByPos[0];
+                    const weakness = sortedByNeg[0];
                     
                     document.getElementById('statStrength').textContent = (ASPECT_ICONS[strength.aspect] || '') + ' ' + strength.aspect;
-                    document.getElementById('statStrengthScore').textContent = '+' + strengthNet + ' net';
+                    document.getElementById('statStrengthScore').textContent = formatNumber(strength.positive_count) + ' positive';
                     document.getElementById('statWeakness').textContent = (ASPECT_ICONS[weakness.aspect] || '') + ' ' + weakness.aspect;
-                    document.getElementById('statWeaknessScore').textContent = (weaknessNet >= 0 ? '+' : '') + weaknessNet + ' net';
+                    document.getElementById('statWeaknessScore').textContent = formatNumber(weakness.negative_count) + ' negative';
                     
                     // Populate Praises (top 5 by positive count)
                     const praises = [...data].sort((a, b) => b.positive_count - a.positive_count).slice(0, 5);
@@ -876,7 +868,6 @@
                 const res = await fetch(`/api/satisfaction?${params}`);
                 const data = await res.json();
                 
-                renderSatisfactionChart(data);
                 renderSatisfactionTable(data);
             } catch (e) {
                 console.error('Failed to load satisfaction:', e);
@@ -1076,7 +1067,7 @@
                 return 'heat-vlow';
             };
             
-            // Calculate wins for verdict
+            // Calculate wins for verdict (based on positive count)
             const winsCount = {};
             items.forEach(item => { winsCount[item] = 0; });
             
@@ -1084,28 +1075,27 @@
                 const scores = items.map(item => {
                     const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
                     const pos = aspectData?.positive_count || 0;
-                    const neg = aspectData?.negative_count || 0;
                     const mentions = aspectData?.total_mentions || 0;
                     return { 
                         item, 
-                        netSentiment: mentions >= 10 ? (pos - neg) : -99999,
+                        posCount: mentions >= 10 ? pos : -1,
                         mentions 
                     };
                 });
-                const validScores = scores.filter(s => s.netSentiment > -99999);
+                const validScores = scores.filter(s => s.posCount >= 0);
                 if (validScores.length === 0) continue;
                 
-                const maxNetAspect = Math.max(...validScores.map(s => s.netSentiment));
-                const winner = validScores.find(s => s.netSentiment === maxNetAspect);
+                const maxPos = Math.max(...validScores.map(s => s.posCount));
+                const winner = validScores.find(s => s.posCount === maxPos);
                 if (winner) winsCount[winner.item]++;
             }
             
             const totalAspects = aspects.length;
             const overallWinner = Object.entries(winsCount).sort((a, b) => b[1] - a[1])[0];
-            const mostDiscussed = itemStats.sort((a, b) => b.totalMentions - a.totalMentions)[0];
+            const mostDiscussed = [...itemStats].sort((a, b) => b.totalMentions - a.totalMentions)[0];
             
-            // Resort itemStats by net for display
-            const sortedByNet = [...itemStats].sort((a, b) => b.netSentiment - a.netSentiment);
+            // Sort by positive count for "Most Praised"
+            const sortedByPos = [...itemStats].sort((a, b) => b.posCount - a.posCount);
             
             // 0. Verdict Summary Card
             let html = `
@@ -1125,18 +1115,16 @@
                             <div class="text-xs text-gray-500">${formatNumber(mostDiscussed.totalMentions)} mentions</div>
                         </div>
                         <div class="text-center">
-                            <div class="text-3xl mb-2">${sortedByNet[0].netSentiment >= 0 ? '👍' : '👎'}</div>
-                            <div class="text-sm text-gray-400">Best Net Sentiment</div>
-                            <div class="text-lg font-bold text-white mt-1">${sortedByNet[0].item}</div>
-                            <div class="text-xs ${sortedByNet[0].netSentiment >= 0 ? 'text-green-400' : 'text-red-400'}">
-                                ${sortedByNet[0].netSentiment >= 0 ? '+' : ''}${formatNumber(sortedByNet[0].netSentiment)} net
-                            </div>
+                            <div class="text-3xl mb-2">👍</div>
+                            <div class="text-sm text-gray-400">Most Praised</div>
+                            <div class="text-lg font-bold text-white mt-1">${sortedByPos[0].item}</div>
+                            <div class="text-xs text-green-400">${formatNumber(sortedByPos[0].posCount)} positive</div>
                         </div>
                     </div>
                 </div>
             `;
             
-            // 1. Overview Section (raw counts)
+            // 1. Overview Section (raw counts only)
             html += `
                 <div class="mb-8">
                     <h4 class="text-md font-semibold text-purple-400 mb-4">Overview</h4>
@@ -1159,15 +1147,6 @@
                             <tr>
                                 <td class="text-gray-300 font-medium">👎 Negative</td>
                                 ${itemStats.map(s => `<td><span class="text-red-400 font-medium">${formatNumber(s.negCount)}</span></td>`).join('')}
-                            </tr>
-                            <tr>
-                                <td class="text-gray-300 font-medium">Net Sentiment</td>
-                                ${itemStats.map(s => {
-                                    const isMax = s.netSentiment === maxNet;
-                                    const sign = s.netSentiment >= 0 ? '+' : '';
-                                    const color = s.netSentiment >= 0 ? 'text-green-400' : 'text-red-400';
-                                    return `<td><span class="${color} font-bold ${isMax ? 'underline' : ''}">${sign}${formatNumber(s.netSentiment)}</span></td>`;
-                                }).join('')}
                             </tr>
                         </tbody>
                     </table>
@@ -1226,17 +1205,17 @@
             
             html += `</tbody></table></div>`;
             
-            // 3. Aspect-wise Comparison Section (Raw counts with net)
+            // 3. Aspect-wise Comparison Section (Raw counts only, no net)
             html += `
                 <div class="mb-8">
                     <h4 class="text-md font-semibold text-purple-400 mb-4">Aspect-wise Comparison</h4>
-                    <p class="text-xs text-gray-500 mb-3">Shows 👍 Positive / 👎 Negative counts with net difference. Higher net = better.</p>
+                    <p class="text-xs text-gray-500 mb-3">👍 Positive / 👎 Negative mention counts. Winner = higher positive count.</p>
                     <table class="data-table">
                         <thead>
                             <tr>
                                 <th>Aspect</th>
                                 ${items.map((item, i) => getItemHeader(item, i)).join('')}
-                                <th class="text-center" style="width: 80px;">Winner</th>
+                                <th class="text-center" style="width: 80px;">Edge</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1251,7 +1230,6 @@
                     return {
                         posCount: pos,
                         negCount: neg,
-                        netSentiment: pos - neg,
                         mentions: mentions
                     };
                 });
@@ -1260,27 +1238,23 @@
                 const validScores = aspectInfo.filter(a => a.mentions >= 10);
                 if (validScores.length === 0) continue;
                 
-                const nets = aspectInfo.map(a => a.mentions >= 10 ? a.netSentiment : -99999);
-                const maxNet = Math.max(...nets.filter(n => n > -99999));
+                // Winner = highest positive count among valid items
+                const positiveCounts = aspectInfo.map(a => a.mentions >= 10 ? a.posCount : -1);
+                const maxPos = Math.max(...positiveCounts.filter(p => p >= 0));
                 
-                const winnerIdx = nets.indexOf(maxNet);
-                const winner = maxNet > -99999 ? items[winnerIdx] : '-';
+                const winnerIdx = positiveCounts.indexOf(maxPos);
+                const winner = maxPos >= 0 ? items[winnerIdx] : '-';
                 
                 html += `<tr><td class="text-gray-300 font-medium">${ASPECT_ICONS[aspect] || ''} ${aspect}</td>`;
                 aspectInfo.forEach((info, idx) => {
                     if (info.mentions < 10) {
                         html += `<td><span class="heat-cell heat-neutral">--</span></td>`;
                     } else {
-                        const isWinner = info.netSentiment === maxNet && info.mentions >= 10;
-                        const sign = info.netSentiment >= 0 ? '+' : '';
-                        // Show 👍/👎 format with compact numbers
-                        html += `<td class="${isWinner ? 'winner-cell rounded' : ''}">
-                            <div class="text-xs">
-                                <span class="text-green-400">👍${formatNumber(info.posCount)}</span>
-                                <span class="text-gray-500 mx-1">/</span>
-                                <span class="text-red-400">👎${formatNumber(info.negCount)}</span>
-                            </div>
-                            <div class="text-xs mt-0.5 ${info.netSentiment >= 0 ? 'text-green-400' : 'text-red-400'} font-medium">${sign}${info.netSentiment} net</div>
+                        const isWinner = info.posCount === maxPos && info.mentions >= 10;
+                        html += `<td class="${isWinner ? 'winner-cell rounded px-2 py-1' : ''}">
+                            <span class="text-green-400">👍 ${formatNumber(info.posCount)}</span>
+                            <span class="text-gray-500 mx-1">/</span>
+                            <span class="text-red-400">👎 ${formatNumber(info.negCount)}</span>
                         </td>`;
                     }
                 });
@@ -1289,7 +1263,7 @@
             
             html += `</tbody></table></div>`;
             
-            // 4. Attribute Wins Section (using net sentiment)
+            // 4. Attribute Wins Section (based on positive count)
             const wins = {};
             items.forEach(item => { wins[item] = []; });
             
@@ -1297,27 +1271,26 @@
                 const scores = items.map(item => {
                     const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
                     const pos = aspectData?.positive_count || 0;
-                    const neg = aspectData?.negative_count || 0;
                     const mentions = aspectData?.total_mentions || 0;
                     return { 
                         item, 
-                        netSentiment: mentions >= 10 ? (pos - neg) : -99999,
+                        posCount: mentions >= 10 ? pos : -1,
                         mentions 
                     };
                 });
-                const validScores = scores.filter(s => s.netSentiment > -99999);
+                const validScores = scores.filter(s => s.posCount >= 0);
                 if (validScores.length === 0) continue;
                 
-                const maxNet = Math.max(...validScores.map(s => s.netSentiment));
+                const maxPos = Math.max(...validScores.map(s => s.posCount));
                 
-                const winner = validScores.find(s => s.netSentiment === maxNet);
-                if (winner) wins[winner.item].push({ aspect, net: winner.netSentiment });
+                const winner = validScores.find(s => s.posCount === maxPos);
+                if (winner) wins[winner.item].push({ aspect, posCount: winner.posCount });
             }
             
             html += `
                 <div>
                     <h4 class="text-md font-semibold text-purple-400 mb-2">Attribute Wins 🏆</h4>
-                    <p class="text-xs text-gray-500 mb-4">Aspects where each ${compareMode === 'brand' ? 'brand' : 'model'} has the best net sentiment.</p>
+                    <p class="text-xs text-gray-500 mb-4">Aspects where each ${compareMode === 'brand' ? 'brand' : 'model'} has the most positive mentions.</p>
                     <div class="grid grid-cols-${items.length} gap-4">
             `;
             
@@ -1333,9 +1306,7 @@
                         </h4>
                         ${itemWins.length > 0 
                             ? itemWins.map(w => {
-                                const sign = w.net >= 0 ? '+' : '';
-                                const color = w.net >= 0 ? 'text-green-400' : 'text-red-400';
-                                return `<div class="win-item"><span class="aspect">${ASPECT_ICONS[w.aspect] || ''} ${w.aspect}</span><span class="score ${color}">${sign}${w.net}</span></div>`;
+                                return `<div class="win-item"><span class="aspect">${ASPECT_ICONS[w.aspect] || ''} ${w.aspect}</span><span class="score text-green-400">👍 ${formatNumber(w.posCount)}</span></div>`;
                             }).join('')
                             : '<p class="text-xs text-gray-500 mt-2">No winning attributes</p>'
                         }
