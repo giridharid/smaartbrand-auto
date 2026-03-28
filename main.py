@@ -727,7 +727,7 @@ async def get_sample_reviews(
 ):
     """
     Get sample review comments for a specific brand/model and aspect.
-    Used to show WHY an aspect has positive/negative sentiment.
+    Shows actual Reddit comments to understand sentiment drivers.
     """
     c = get_client()
     if not c:
@@ -739,53 +739,59 @@ async def get_sample_reviews(
     if not brand and not model:
         raise HTTPException(status_code=400, detail="Either brand or model required")
     
-    vehicle_filter = get_vehicle_filter()
+    vehicle_filter = "product_id LIKE 'CAR_%'" if VEHICLE_TYPE == "car" else "product_id LIKE 'BIKE_%'"
     
-    # Build WHERE clause
+    # Build WHERE clause for reviews table
     where_clauses = [vehicle_filter]
     
     if model:
-        where_clauses.append(f"a.model = '{model.replace(chr(39), chr(39)+chr(39))}'")
+        where_clauses.append(f"model = '{model.replace(chr(39), chr(39)+chr(39))}'")
     elif brand:
-        where_clauses.append(f"a.brand = '{brand.replace(chr(39), chr(39)+chr(39))}'")
+        where_clauses.append(f"brand = '{brand.replace(chr(39), chr(39)+chr(39))}'")
     
-    # Normalize the aspect name to match what might be in DB
-    aspect_variations = [aspect]
-    # Add lowercase version
-    aspect_variations.append(aspect.lower())
-    # Check ASPECT_MAPPING for reverse lookup
-    for raw, standard in ASPECT_MAPPING.items():
-        if standard == aspect:
-            aspect_variations.append(raw)
-    
-    aspect_sql = "', '".join(aspect_variations)
-    where_clauses.append(f"LOWER(a.aspect) IN ('{aspect_sql.lower()}')")
-    
-    # Filter by sentiment if specified
+    # Filter by overall sentiment in the review if specified
     if sentiment == "positive":
-        where_clauses.append("a.sentiment = 1")
+        where_clauses.append("masi_overall = 1")
     elif sentiment == "negative":
-        where_clauses.append("a.sentiment = -1")
+        where_clauses.append("masi_overall = -1")
     
-    # Query to get sample reviews with their text
+    # Also filter by aspect keywords in the comment body for relevance
+    aspect_keywords = {
+        "Performance": ["engine", "power", "speed", "acceleration", "performance", "turbo", "torque", "bhp", "hp"],
+        "Comfort": ["comfort", "ride", "seat", "interior", "cabin", "suspension", "noise"],
+        "Safety": ["safety", "airbag", "brake", "crash", "ncap", "safe", "accident"],
+        "Features": ["feature", "tech", "infotainment", "screen", "sunroof", "camera", "sensor"],
+        "Space": ["space", "boot", "legroom", "headroom", "storage", "cabin"],
+        "Mileage": ["mileage", "fuel", "economy", "kmpl", "efficiency", "petrol", "diesel"],
+        "Ownership": ["service", "maintenance", "dealer", "showroom", "spare", "cost", "ownership"],
+        "Value": ["value", "price", "money", "worth", "expensive", "cheap", "budget", "cost"],
+        "Brand": ["brand", "company", "trust", "reputation", "reliable", "quality"],
+        "Style": ["design", "look", "style", "aesthetic", "beautiful", "exterior"],
+        "Handling": ["handling", "steering", "corner", "grip", "balance"],
+        "Build": ["build", "quality", "fit", "finish", "solid", "sturdy", "rust"]
+    }
+    
+    keywords = aspect_keywords.get(aspect, [aspect.lower()])
+    keyword_conditions = " OR ".join([f"LOWER(comment_body) LIKE '%{kw}%'" for kw in keywords[:5]])
+    where_clauses.append(f"({keyword_conditions})")
+    
+    # Query to get sample reviews
     query = f"""
     SELECT DISTINCT
-        r.comment_text,
-        a.aspect,
-        a.sentiment,
-        a.brand,
-        a.model,
-        r.subreddit,
-        r.comment_date
-    FROM `{PROJECT}.{DATASET}.aspects` a
-    JOIN `{PROJECT}.{DATASET}.reviews` r ON a.comment_id = r.comment_id
+        comment_body as comment_text,
+        masi_overall as sentiment,
+        brand,
+        model,
+        subreddit,
+        created_date as comment_date
+    FROM `{PROJECT}.{DATASET}.reviews`
     WHERE {' AND '.join(where_clauses)}
-        AND r.comment_text IS NOT NULL
-        AND LENGTH(r.comment_text) > 50
-        AND LENGTH(r.comment_text) < 1000
+        AND comment_body IS NOT NULL
+        AND LENGTH(comment_body) > 30
+        AND LENGTH(comment_body) < 1500
     ORDER BY 
-        CASE WHEN a.sentiment = -1 THEN 0 ELSE 1 END,  -- Negative first if "all"
-        LENGTH(r.comment_text) DESC
+        CASE WHEN masi_overall = -1 THEN 0 ELSE 1 END,
+        LENGTH(comment_body) DESC
     LIMIT {min(limit, 10)}
     """
     
