@@ -1088,7 +1088,7 @@
                 return 'heat-vlow';
             };
             
-            // Calculate wins for verdict (based on positive count)
+            // Calculate wins for verdict (based on positive RATIO for fairness)
             const winsCount = {};
             items.forEach(item => { winsCount[item] = 0; });
             
@@ -1096,18 +1096,20 @@
                 const scores = items.map(item => {
                     const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
                     const pos = aspectData?.positive_count || 0;
+                    const neg = aspectData?.negative_count || 0;
                     const mentions = aspectData?.total_mentions || 0;
+                    const ratio = (pos + neg) > 0 ? pos / (pos + neg) : 0;
                     return { 
                         item, 
-                        posCount: mentions >= 10 ? pos : -1,
+                        ratio: mentions >= 10 ? ratio : -1,
                         mentions 
                     };
                 });
-                const validScores = scores.filter(s => s.posCount >= 0);
+                const validScores = scores.filter(s => s.ratio >= 0);
                 if (validScores.length === 0) continue;
                 
-                const maxPos = Math.max(...validScores.map(s => s.posCount));
-                const winner = validScores.find(s => s.posCount === maxPos);
+                const maxRatio = Math.max(...validScores.map(s => s.ratio));
+                const winner = validScores.find(s => s.ratio === maxRatio);
                 if (winner) winsCount[winner.item]++;
             }
             
@@ -1226,11 +1228,11 @@
             
             html += `</tbody></table></div>`;
             
-            // 3. Aspect-wise Comparison Section (Raw counts only, no net)
+            // 3. Aspect-wise Comparison Section (Display: raw counts, Winner: by ratio)
             html += `
                 <div class="mb-8">
                     <h4 class="text-md font-semibold text-purple-400 mb-4">Aspect-wise Comparison</h4>
-                    <p class="text-xs text-gray-500 mb-3">👍 Positive / 👎 Negative mention counts. Winner = higher positive count.</p>
+                    <p class="text-xs text-gray-500 mb-3">👍 Positive / 👎 Negative mention counts. Winner = highest positive ratio.</p>
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -1248,10 +1250,13 @@
                     const pos = aspectData?.positive_count || 0;
                     const neg = aspectData?.negative_count || 0;
                     const mentions = aspectData?.total_mentions || 0;
+                    // Calculate positive ratio for fair comparison
+                    const ratio = (pos + neg) > 0 ? pos / (pos + neg) : 0;
                     return {
                         posCount: pos,
                         negCount: neg,
-                        mentions: mentions
+                        mentions: mentions,
+                        ratio: ratio
                     };
                 });
                 
@@ -1259,19 +1264,19 @@
                 const validScores = aspectInfo.filter(a => a.mentions >= 10);
                 if (validScores.length === 0) continue;
                 
-                // Winner = highest positive count among valid items
-                const positiveCounts = aspectInfo.map(a => a.mentions >= 10 ? a.posCount : -1);
-                const maxPos = Math.max(...positiveCounts.filter(p => p >= 0));
+                // Winner = highest positive RATIO among valid items (fair comparison)
+                const ratios = aspectInfo.map(a => a.mentions >= 10 ? a.ratio : -1);
+                const maxRatio = Math.max(...ratios.filter(r => r >= 0));
                 
-                const winnerIdx = positiveCounts.indexOf(maxPos);
-                const winner = maxPos >= 0 ? items[winnerIdx] : '-';
+                const winnerIdx = ratios.indexOf(maxRatio);
+                const winner = maxRatio >= 0 ? items[winnerIdx] : '-';
                 
                 html += `<tr><td class="text-gray-300 font-medium">${ASPECT_ICONS[aspect] || ''} ${aspect}</td>`;
                 aspectInfo.forEach((info, idx) => {
                     if (info.mentions < 10) {
                         html += `<td><span class="heat-cell heat-neutral">--</span></td>`;
                     } else {
-                        const isWinner = info.posCount === maxPos && info.mentions >= 10;
+                        const isWinner = info.ratio === maxRatio && info.mentions >= 10;
                         html += `<td class="${isWinner ? 'winner-cell rounded px-2 py-1' : ''}">
                             <span class="text-green-400">👍 ${formatNumber(info.posCount)}</span>
                             <span class="text-gray-500 mx-1">/</span>
@@ -1284,7 +1289,7 @@
             
             html += `</tbody></table></div>`;
             
-            // 4. Attribute Wins Section (based on positive count)
+            // 4. Attribute Wins Section (based on positive RATIO, display aspect names only)
             const wins = {};
             items.forEach(item => { wins[item] = []; });
             
@@ -1292,26 +1297,28 @@
                 const scores = items.map(item => {
                     const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
                     const pos = aspectData?.positive_count || 0;
+                    const neg = aspectData?.negative_count || 0;
                     const mentions = aspectData?.total_mentions || 0;
+                    const ratio = (pos + neg) > 0 ? pos / (pos + neg) : 0;
                     return { 
                         item, 
-                        posCount: mentions >= 10 ? pos : -1,
+                        ratio: mentions >= 10 ? ratio : -1,
                         mentions 
                     };
                 });
-                const validScores = scores.filter(s => s.posCount >= 0);
+                const validScores = scores.filter(s => s.ratio >= 0);
                 if (validScores.length === 0) continue;
                 
-                const maxPos = Math.max(...validScores.map(s => s.posCount));
+                const maxRatio = Math.max(...validScores.map(s => s.ratio));
                 
-                const winner = validScores.find(s => s.posCount === maxPos);
-                if (winner) wins[winner.item].push({ aspect, posCount: winner.posCount });
+                const winner = validScores.find(s => s.ratio === maxRatio);
+                if (winner) wins[winner.item].push(aspect);
             }
             
             html += `
                 <div>
                     <h4 class="text-md font-semibold text-purple-400 mb-2">Attribute Wins 🏆</h4>
-                    <p class="text-xs text-gray-500 mb-4">Aspects where each ${compareMode === 'brand' ? 'brand' : 'model'} has the most positive mentions.</p>
+                    <p class="text-xs text-gray-500 mb-4">Aspects where each ${compareMode === 'brand' ? 'brand' : 'model'} has the highest positive ratio.</p>
                     <div class="grid grid-cols-${items.length} gap-4">
             `;
             
@@ -1326,8 +1333,8 @@
                             <span class="text-gray-500 flex-shrink-0">(${itemWins.length})</span>
                         </h4>
                         ${itemWins.length > 0 
-                            ? itemWins.map(w => {
-                                return `<div class="win-item"><span class="aspect">${ASPECT_ICONS[w.aspect] || ''} ${w.aspect}</span><span class="score text-green-400">👍 ${formatNumber(w.posCount)}</span></div>`;
+                            ? itemWins.map(aspect => {
+                                return `<div class="win-item"><span class="aspect">${ASPECT_ICONS[aspect] || ''} ${aspect}</span></div>`;
                             }).join('')
                             : '<p class="text-xs text-gray-500 mt-2">No winning attributes</p>'
                         }
