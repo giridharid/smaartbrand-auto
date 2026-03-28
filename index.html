@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smaartbrand Auto | Decision Intelligence</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23667eea'/%3E%3Cpath d='M25 55 L40 45 L50 50 L75 35' stroke='white' stroke-width='4' fill='none'/%3E%3C/svg%3E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body { background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d0d1f 100%); min-height: 100vh; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glass-dark { background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .chat-panel { transform: translateX(100%); transition: transform 0.3s ease-in-out, width 0.3s ease-in-out; }
+        .chat-panel.open { transform: translateX(0); }
+        .chat-panel.collapsed { width: 60px !important; min-width: 60px !important; }
+        .chat-panel.collapsed .chat-content { display: none; }
+        .chat-panel.collapsed .chat-collapsed-bar { display: flex !important; }
+        .stat-card { transition: all 0.3s ease; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(102, 126, 234, 0.2); }
+        .tab-btn.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .typing-indicator span { animation: bounce 1.4s infinite ease-in-out both; }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        .message-content { line-height: 1.6; }
+        .message-content h3 { font-size: 1rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.5rem; color: #c4b5fd; }
+        .message-content h4 { font-size: 0.9rem; font-weight: 600; margin-top: 0.75rem; color: #a78bfa; }
+        .message-content ul { margin-left: 0.5rem; margin-bottom: 0.5rem; list-style: none; }
+        .message-content li { margin-bottom: 0.25rem; }
+        .message-content hr { border-color: rgba(255,255,255,0.1); margin: 1rem 0; }
+        .message-content strong { color: #e9d5ff; }
+        .message-content p { margin-bottom: 0.5rem; }
+        
+        /* Data tables - matching hotels/smartphones style */
+        .data-table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+        .data-table th { text-align: left; padding: 12px 16px; font-weight: 500; color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .data-table td { padding: 10px 16px; font-size: 13px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .data-table td:first-child { text-align: left; width: 180px; }
+        .data-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+        
+        /* Comparison table column headers */
+        .data-table th.item-col { 
+            text-align: center; 
+            vertical-align: bottom;
+            padding: 10px 8px;
+            height: 60px;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+        .item-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100%;
+            gap: 4px;
+        }
+        .item-header .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .item-header .name {
+            font-weight: 600;
+            color: #e2e8f0;
+            text-align: center;
+            line-height: 1.2;
+            max-width: 100%;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            word-break: break-word;
+        }
+        .item-header .name.short { font-size: 13px; }
+        .item-header .name.medium { font-size: 11px; }
+        .item-header .name.long { font-size: 10px; }
+        
+        /* Heatmap cells - exactly matching hotels */
+        .heat-cell { 
+            display: inline-block;
+            min-width: 50px;
+            padding: 6px 12px; 
+            border-radius: 4px; 
+            font-weight: 500; 
+            font-size: 13px; 
+            text-align: center;
+        }
+        .heat-vhigh { background: rgba(100, 200, 180, 0.4); color: #fff; }
+        .heat-high { background: rgba(100, 200, 180, 0.3); color: #5eead4; }
+        .heat-med { background: rgba(255, 180, 100, 0.3); color: #fcd34d; }
+        .heat-low { background: rgba(255, 99, 99, 0.3); color: #fca5a5; }
+        .heat-vlow { background: rgba(255, 99, 99, 0.35); color: #f87171; }
+        .heat-neutral { background: rgba(255, 255, 255, 0.05); color: #94a3b8; }
+        
+        .winner-cell { background: rgba(102, 126, 234, 0.35); color: #a5b4fc; font-weight: 600; }
+        
+        /* Attribute wins cards */
+        .wins-column { background: rgba(255,255,255,0.02); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.05); }
+        .wins-column h4 { font-size: 14px; font-weight: 600; color: #a78bfa; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .win-item { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .win-item:last-child { border-bottom: none; }
+        .win-item .aspect { color: #e2e8f0; }
+        .win-item .score { color: #94a3b8; }
+        
+        /* Color legend - matching hotels */
+        .legend { display: flex; gap: 4px; align-items: center; font-size: 11px; color: #64748b; }
+        .legend-item { display: flex; align-items: center; gap: 2px; }
+        .legend-box { width: 20px; height: 12px; border-radius: 2px; }
+        .legend-text { margin-left: 4px; }
+    </style>
+</head>
+<body class="text-white overflow-x-hidden">
+    <!-- Header -->
+    <header class="glass sticky top-0 z-40 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2 flex-wrap">
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                    <span class="text-lg">🚗</span>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold gradient-text">Smaartbrand</h1>
+                    <p class="text-xs text-gray-400 hidden sm:block">Auto Intelligence</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2 flex-wrap">
+                <select id="brandSelect" class="glass-dark px-2 py-1.5 rounded-lg text-xs focus:outline-none" style="max-width: 120px;">
+                    <option value="">Loading...</option>
+                </select>
+                <select id="segmentSelect" class="glass-dark px-2 py-1.5 rounded-lg text-xs focus:outline-none hidden" style="max-width: 120px;">
+                    <option value="">All Segments</option>
+                </select>
+                <select id="modelSelect" class="glass-dark px-2 py-1.5 rounded-lg text-xs focus:outline-none hidden truncate" style="max-width: 160px;">
+                    <option value="">Select Model</option>
+                </select>
+                
+                <div class="glass-dark rounded-lg p-1 flex flex-shrink-0">
+                    <button id="brandViewBtn" class="px-2 py-1 rounded text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white whitespace-nowrap">Brand View</button>
+                    <button id="modelViewBtn" class="px-2 py-1 rounded text-xs font-medium text-gray-400 hover:text-white whitespace-nowrap">Model View</button>
+                </div>
+                
+                <button id="chatToggle" class="glass-dark px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-white/10 transition flex-shrink-0">
+                    <span>💬</span>
+                    <span class="text-xs hidden lg:inline">SmaartAnalyst</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-6">
+        <!-- Selection Context Header -->
+        <div id="contextHeader" class="glass rounded-2xl p-4 mb-6">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span id="contextIcon" class="text-2xl">🚗</span>
+                        <div>
+                            <h2 id="contextTitle" class="text-xl font-bold gradient-text">Loading...</h2>
+                            <p id="contextSubtitle" class="text-sm text-gray-400">Select a brand or model to view insights</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="contextMeta" class="text-right hidden">
+                    <div class="flex items-center gap-4">
+                        <div>
+                            <span class="text-xs text-gray-500">Satisfaction</span>
+                            <div id="contextSatisfaction" class="text-lg font-bold text-green-400">--</div>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-500">Mentions</span>
+                            <div id="contextMentions" class="text-lg font-bold text-purple-400">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+            <div class="stat-card glass rounded-2xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-xs">Overall Satisfaction</span>
+                    <span class="text-xl">📈</span>
+                </div>
+                <div class="text-2xl font-bold gradient-text" id="statOverall">--</div>
+                <div class="text-xs text-gray-500 mt-1" id="statMentions">Based on mentions</div>
+            </div>
+            
+            <div class="stat-card glass rounded-2xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-xs">Top Strength</span>
+                    <span class="text-xl">💪</span>
+                </div>
+                <div class="text-lg font-bold text-green-400" id="statStrength">--</div>
+                <div class="text-xs text-gray-500 mt-1" id="statStrengthScore">--</div>
+            </div>
+            
+            <div class="stat-card glass rounded-2xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-xs">Top Weakness</span>
+                    <span class="text-xl">🔧</span>
+                </div>
+                <div class="text-lg font-bold text-amber-400" id="statWeakness">--</div>
+                <div class="text-xs text-gray-500 mt-1" id="statWeaknessScore">--</div>
+            </div>
+            
+            <div class="stat-card glass rounded-2xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-xs">Top Buyer Type</span>
+                    <span class="text-xl">👥</span>
+                </div>
+                <div class="text-lg font-bold text-purple-400" id="statBuyerType">--</div>
+                <div class="text-xs text-gray-500 mt-1" id="statBuyerPct">--</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex gap-2 mb-6">
+            <button class="tab-btn active px-4 py-2 rounded-lg text-sm font-medium transition" onclick="showTab('drivers')">📊 Drivers</button>
+            <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition" onclick="showTab('satisfaction')">📈 Satisfaction</button>
+            <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition" onclick="showTab('comparison')">⚖️ Compare</button>
+            <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition" onclick="showTab('demographics')">👥 Demographics</button>
+        </div>
+
+        <!-- Tab Panels -->
+        <div id="tabContent">
+            <!-- Drivers Tab -->
+            <div id="driversTab" class="tab-panel">
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="glass rounded-2xl p-6">
+                        <h3 class="text-lg font-semibold mb-4">Share of Voice</h3>
+                        <div id="sovChart" style="height: 350px;"></div>
+                    </div>
+                    <div class="glass rounded-2xl p-6">
+                        <h3 class="text-lg font-semibold mb-4">Satisfaction by Aspect</h3>
+                        <div id="radarChart" style="height: 350px;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Satisfaction Tab -->
+            <div id="satisfactionTab" class="tab-panel hidden">
+                <div class="glass rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Satisfaction by Aspect</h3>
+                    <div id="satisfactionChart" style="height: 400px;"></div>
+                </div>
+            </div>
+            
+            <!-- Comparison Tab - Matching Hotels Style Exactly -->
+            <div id="comparisonTab" class="tab-panel hidden">
+                <div class="glass rounded-2xl p-6">
+                    <!-- Compare Mode Toggle -->
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold">Compare</h3>
+                        <div class="glass-dark rounded-lg p-1 flex">
+                            <button id="compareBrandsBtn" class="px-4 py-1.5 rounded text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white">Compare Brands</button>
+                            <button id="compareModelsBtn" class="px-4 py-1.5 rounded text-xs font-medium text-gray-400 hover:text-white">Compare Models</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Brand Compare Selectors -->
+                    <div id="brandCompareSelectors" class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="glass-dark rounded-xl p-4">
+                            <label class="text-xs text-gray-400 mb-2 block">Brand 1</label>
+                            <select id="compareBrand1" class="w-full glass-dark px-3 py-2 rounded-lg text-sm">
+                                <option value="">Select Brand</option>
+                            </select>
+                        </div>
+                        <div class="glass-dark rounded-xl p-4">
+                            <label class="text-xs text-gray-400 mb-2 block">Brand 2</label>
+                            <select id="compareBrand2" class="w-full glass-dark px-3 py-2 rounded-lg text-sm">
+                                <option value="">Select Brand</option>
+                            </select>
+                        </div>
+                        <div class="glass-dark rounded-xl p-4">
+                            <label class="text-xs text-gray-400 mb-2 block">Brand 3</label>
+                            <select id="compareBrand3" class="w-full glass-dark px-3 py-2 rounded-lg text-sm">
+                                <option value="">Select Brand</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Model Compare Selectors (hidden by default) -->
+                    <div id="modelCompareSelectors" class="grid grid-cols-3 gap-4 mb-6 hidden">
+                        <div class="glass-dark rounded-xl p-4">
+                            <label class="text-xs text-gray-400 mb-2 block">Model 1</label>
+                            <select id="compareModelBrand1" class="w-full glass-dark px-3 py-2 rounded-lg text-sm mb-2">
+                                <option value="">Select Brand</option>
+                            </select>
+                            <select id="compareModel1" class="w-full glass-dark px-3 py-2 rounded-lg text-sm">
+                                <option value="">Select Model</option>
+                            </select>
+                        </div>
+                        <div class="glass-dark rounded-xl p-4">
+                            <label class="text-xs text-gray-400 mb-2 block">Model 2</label>
+                            <select id="compareModelBrand2" class="w-full glass-dark px-3 py-2 rounded-lg text-sm mb-2">
+                                <option value="">Select Brand</option>
+                            </select>
+                            <select id="compareModel2" class="w-full glass-dark px-3 py-2 rounded-lg text-sm">
+                                <option value="">Select Model</option>
+                            </select>
+                        </div>
+                        <div class="glass-dark rounded-xl p-4">
+                            <label class="text-xs text-gray-400 mb-2 block">Model 3</label>
+                            <select id="compareModelBrand3" class="w-full glass-dark px-3 py-2 rounded-lg text-sm mb-2">
+                                <option value="">Select Brand</option>
+                            </select>
+                            <select id="compareModel3" class="w-full glass-dark px-3 py-2 rounded-lg text-sm">
+                                <option value="">Select Model</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex gap-3">
+                            <span class="text-gray-400 text-sm">Filter by:</span>
+                            <select id="comparePersona" class="glass-dark px-3 py-1.5 rounded text-xs">
+                                <option value="">All Personas</option>
+                                <option value="value_seeker">Value Seeker</option>
+                                <option value="enthusiast">Enthusiast</option>
+                                <option value="family">Family</option>
+                                <option value="commuter">Commuter</option>
+                                <option value="first_buyer">First Buyer</option>
+                            </select>
+                            <select id="compareGender" class="glass-dark px-3 py-1.5 rounded text-xs">
+                                <option value="">All Genders</option>
+                                <option value="M">Male</option>
+                                <option value="F">Female</option>
+                            </select>
+                        </div>
+                        <button id="runCompareBtn" class="bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">Compare</button>
+                    </div>
+                    
+                    <div id="comparisonContent">
+                        <p class="text-gray-500 text-center py-12">Select items to compare</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Demographics Tab -->
+            <div id="demographicsTab" class="tab-panel hidden">
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="glass rounded-2xl p-6">
+                        <h3 class="text-lg font-semibold mb-4">Buyer Persona</h3>
+                        <div id="personaChart" style="height: 280px;"></div>
+                    </div>
+                    <div class="glass rounded-2xl p-6">
+                        <h3 class="text-lg font-semibold mb-4">Purchase Intent</h3>
+                        <div id="intentChart" style="height: 280px;"></div>
+                    </div>
+                    <div class="glass rounded-2xl p-6">
+                        <h3 class="text-lg font-semibold mb-4">Gender Distribution</h3>
+                        <div id="genderChart" style="height: 280px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Chat Panel - WIDER WITH COLLAPSE - Matching Hotels -->
+    <div id="chatPanel" class="chat-panel fixed right-0 top-0 h-full w-[50vw] min-w-[500px] max-w-[800px] glass-dark z-50 flex flex-col">
+        <!-- Collapsed Bar (hidden by default) -->
+        <div class="chat-collapsed-bar hidden flex-col items-center justify-center h-full py-4 cursor-pointer" onclick="expandChat()">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-3">
+                <span>🤖</span>
+            </div>
+            <span class="text-xs text-gray-400" style="writing-mode: vertical-rl; text-orientation: mixed;">SmaartAnalyst</span>
+            <div class="mt-4 text-purple-400">◀</div>
+        </div>
+        
+        <!-- Main Chat Content -->
+        <div class="chat-content flex flex-col h-full">
+            <div class="p-4 border-b border-white/10 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                        <span>🤖</span>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold">SmaartAnalyst</h3>
+                        <p class="text-xs text-gray-400" id="chatContextLabel">Auto Intelligence AI</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="chatCollapse" class="text-gray-400 hover:text-white transition text-lg" title="Collapse">▶</button>
+                    <button id="chatClose" class="text-gray-400 hover:text-white transition text-xl" title="Close">✕</button>
+                </div>
+            </div>
+            
+            <div class="p-4 border-b border-white/10">
+                <p class="text-xs text-gray-400 mb-2">Quick questions:</p>
+                <div class="flex flex-wrap gap-2">
+                    <button class="quick-btn glass text-xs px-3 py-1.5 rounded-full hover:bg-white/10" data-question="What should we improve?">🔧 Improvements</button>
+                    <button class="quick-btn glass text-xs px-3 py-1.5 rounded-full hover:bg-white/10" data-question="How do family buyers rate us?">👨‍👩‍👧 Families</button>
+                    <button class="quick-btn glass text-xs px-3 py-1.5 rounded-full hover:bg-white/10" data-question="What are our top strengths?">💪 Strengths</button>
+                    <button class="quick-btn glass text-xs px-3 py-1.5 rounded-full hover:bg-white/10" data-question="Compare us to competitors">🏆 vs Competitors</button>
+                    <button class="quick-btn glass text-xs px-3 py-1.5 rounded-full hover:bg-white/10" data-question="What features do buyers want?">⚙️ Features</button>
+                </div>
+            </div>
+            
+            <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4">
+                <div class="flex gap-3">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center flex-shrink-0">🤖</div>
+                    <div class="glass rounded-2xl rounded-tl-none p-4 max-w-[85%]">
+                        <p class="text-sm">Hi! I'm SmaartAnalyst. Ask me about buyer sentiment, model comparisons, persona insights, or feature demand.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t border-white/10">
+                <div class="flex gap-2">
+                    <input id="chatInput" type="text" placeholder="Ask about buyer sentiment, comparisons, recommendations..." 
+                           class="flex-1 glass px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm">
+                    <button id="chatSend" class="px-4 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:opacity-90 transition">➤</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Chat Overlay -->
+    <div id="chatOverlay" class="fixed inset-0 bg-black/50 z-40 hidden"></div>
+
+    <script>
+        // ═══════════════════════════════════════════
+        // STATE
+        // ═══════════════════════════════════════════
+        let currentBrand = null;
+        let currentModel = null;
+        let viewMode = 'brand';
+        let brands = [];
+        let models = [];
+        let charts = {};
+        let compareMode = 'brand';
+        
+        const VEHICLE_TYPE = 'car';
+        
+        const ASPECT_ICONS = {
+            'Performance': '🏎️', 'Comfort': '🛋️', 'Safety': '🛡️', 'Features': '⚙️',
+            'Space': '📦', 'Mileage': '⛽', 'Ownership': '🔧', 'Value': '💰',
+            'Brand': '🏷️', 'Style': '✨', 'Handling': '🎯', 'Build': '🔩'
+        };
+        
+        const PERSONA_LABELS = {
+            'value_seeker': 'Value Seeker', 'enthusiast': 'Enthusiast',
+            'family': 'Family Buyer', 'commuter': 'Commuter',
+            'first_buyer': 'First Buyer', 'tech': 'Tech Enthusiast'
+        };
+        
+        const itemColors = ['#f59e0b', '#8b5cf6', '#10b981', '#3b82f6'];
+        
+        // ═══════════════════════════════════════════
+        // INITIALIZATION
+        // ═══════════════════════════════════════════
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadBrands();
+            setupEventListeners();
+        });
+        
+        async function loadBrands() {
+            try {
+                const res = await fetch(`/api/brands?vehicle_type=${VEHICLE_TYPE}`);
+                brands = await res.json();
+                
+                const selects = ['brandSelect', 'compareBrand1', 'compareBrand2', 'compareBrand3', 
+                                 'compareModelBrand1', 'compareModelBrand2', 'compareModelBrand3'];
+                selects.forEach(id => {
+                    const select = document.getElementById(id);
+                    if (select) {
+                        select.innerHTML = '<option value="">Select Brand</option>' + 
+                            brands.map(b => `<option value="${b}">${b}</option>`).join('');
+                    }
+                });
+                
+                // Auto-select first brand
+                if (brands.length > 0) {
+                    document.getElementById('brandSelect').value = brands[0];
+                    currentBrand = brands[0];
+                    await loadModels(brands[0]);
+                    await loadAllData();
+                }
+            } catch (e) {
+                console.error('Failed to load brands:', e);
+            }
+        }
+        
+        async function loadModels(brand) {
+            try {
+                const res = await fetch(`/api/models?brand=${encodeURIComponent(brand)}&vehicle_type=${VEHICLE_TYPE}`);
+                models = await res.json();
+                
+                const select = document.getElementById('modelSelect');
+                select.innerHTML = '<option value="">Select Model</option>' + 
+                    models.map(m => `<option value="${m.model}">${m.model}</option>`).join('');
+            } catch (e) {
+                console.error('Failed to load models:', e);
+            }
+        }
+        
+        function setupEventListeners() {
+            // Brand/Model selectors
+            document.getElementById('brandSelect').addEventListener('change', async (e) => {
+                currentBrand = e.target.value;
+                currentModel = null;
+                document.getElementById('modelSelect').value = '';
+                if (currentBrand) {
+                    await loadModels(currentBrand);
+                    await loadAllData();
+                }
+            });
+            
+            document.getElementById('modelSelect').addEventListener('change', async (e) => {
+                currentModel = e.target.value || null;
+                await loadAllData();
+            });
+            
+            // View mode toggle
+            document.getElementById('brandViewBtn').addEventListener('click', () => {
+                viewMode = 'brand';
+                document.getElementById('brandViewBtn').className = 'px-2 py-1 rounded text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white whitespace-nowrap';
+                document.getElementById('modelViewBtn').className = 'px-2 py-1 rounded text-xs font-medium text-gray-400 hover:text-white whitespace-nowrap';
+                document.getElementById('modelSelect').classList.add('hidden');
+                currentModel = null;
+                loadAllData();
+            });
+            
+            document.getElementById('modelViewBtn').addEventListener('click', () => {
+                viewMode = 'model';
+                document.getElementById('modelViewBtn').className = 'px-2 py-1 rounded text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white whitespace-nowrap';
+                document.getElementById('brandViewBtn').className = 'px-2 py-1 rounded text-xs font-medium text-gray-400 hover:text-white whitespace-nowrap';
+                document.getElementById('modelSelect').classList.remove('hidden');
+            });
+            
+            // Compare mode toggle
+            document.getElementById('compareBrandsBtn').addEventListener('click', () => {
+                compareMode = 'brand';
+                document.getElementById('compareBrandsBtn').className = 'px-4 py-1.5 rounded text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white';
+                document.getElementById('compareModelsBtn').className = 'px-4 py-1.5 rounded text-xs font-medium text-gray-400 hover:text-white';
+                document.getElementById('brandCompareSelectors').classList.remove('hidden');
+                document.getElementById('modelCompareSelectors').classList.add('hidden');
+            });
+            
+            document.getElementById('compareModelsBtn').addEventListener('click', () => {
+                compareMode = 'model';
+                document.getElementById('compareModelsBtn').className = 'px-4 py-1.5 rounded text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white';
+                document.getElementById('compareBrandsBtn').className = 'px-4 py-1.5 rounded text-xs font-medium text-gray-400 hover:text-white';
+                document.getElementById('brandCompareSelectors').classList.add('hidden');
+                document.getElementById('modelCompareSelectors').classList.remove('hidden');
+            });
+            
+            // Model compare brand selectors
+            ['compareModelBrand1', 'compareModelBrand2', 'compareModelBrand3'].forEach((id, idx) => {
+                document.getElementById(id).addEventListener('change', async (e) => {
+                    const brand = e.target.value;
+                    const modelSelectId = `compareModel${idx + 1}`;
+                    if (brand) {
+                        const res = await fetch(`/api/models?brand=${encodeURIComponent(brand)}&vehicle_type=${VEHICLE_TYPE}`);
+                        const brandModels = await res.json();
+                        document.getElementById(modelSelectId).innerHTML = '<option value="">Select Model</option>' + 
+                            brandModels.map(m => `<option value="${m.model}">${m.model}</option>`).join('');
+                    }
+                });
+            });
+            
+            // Run comparison
+            document.getElementById('runCompareBtn').addEventListener('click', runComparison);
+            
+            // Chat toggle
+            document.getElementById('chatToggle').addEventListener('click', openChat);
+            document.getElementById('chatClose').addEventListener('click', closeChat);
+            document.getElementById('chatCollapse').addEventListener('click', collapseChat);
+            document.getElementById('chatOverlay').addEventListener('click', closeChat);
+            
+            // Quick questions
+            document.querySelectorAll('.quick-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const q = btn.dataset.question;
+                    document.getElementById('chatInput').value = q;
+                    // Simulate sending
+                });
+            });
+        }
+        
+        // ═══════════════════════════════════════════
+        // DATA LOADING
+        // ═══════════════════════════════════════════
+        async function loadAllData() {
+            if (!currentBrand) return;
+            
+            updateContextHeader();
+            
+            await Promise.all([
+                loadDrivers(),
+                loadSatisfaction(),
+                loadDemographics()
+            ]);
+        }
+        
+        function updateContextHeader() {
+            const title = currentModel || currentBrand;
+            const subtitle = currentModel ? `${currentBrand} • Car` : 'Brand Overview';
+            
+            document.getElementById('contextTitle').textContent = title;
+            document.getElementById('contextSubtitle').textContent = subtitle;
+        }
+        
+        async function loadDrivers() {
+            try {
+                const params = new URLSearchParams({
+                    vehicle_type: VEHICLE_TYPE,
+                    ...(currentModel ? { model: currentModel } : { brand: currentBrand })
+                });
+                
+                const res = await fetch(`/api/drivers?${params}`);
+                const data = await res.json();
+                
+                if (data.length > 0) {
+                    // Update stats
+                    const totalMentions = data.reduce((s, d) => s + d.total_mentions, 0);
+                    const avgSat = Math.round(data.reduce((s, d) => s + d.satisfaction * d.total_mentions, 0) / totalMentions);
+                    
+                    document.getElementById('statOverall').textContent = avgSat + '%';
+                    document.getElementById('statMentions').textContent = `Based on ${formatNumber(totalMentions)} mentions`;
+                    document.getElementById('contextSatisfaction').textContent = avgSat + '%';
+                    document.getElementById('contextMentions').textContent = formatNumber(totalMentions);
+                    document.getElementById('contextMeta').classList.remove('hidden');
+                    
+                    const sorted = [...data].sort((a, b) => b.satisfaction - a.satisfaction);
+                    const strength = sorted[0];
+                    const weakness = sorted[sorted.length - 1];
+                    
+                    document.getElementById('statStrength').textContent = (ASPECT_ICONS[strength.aspect] || '') + ' ' + strength.aspect;
+                    document.getElementById('statStrengthScore').textContent = strength.satisfaction + '% satisfaction';
+                    document.getElementById('statWeakness').textContent = (ASPECT_ICONS[weakness.aspect] || '') + ' ' + weakness.aspect;
+                    document.getElementById('statWeaknessScore').textContent = weakness.satisfaction + '% satisfaction';
+                    
+                    // Render SOV chart
+                    renderSOVChart(data);
+                    // Render radar chart
+                    renderRadarChart(data);
+                }
+            } catch (e) {
+                console.error('Failed to load drivers:', e);
+            }
+        }
+        
+        async function loadSatisfaction() {
+            try {
+                const params = new URLSearchParams({
+                    vehicle_type: VEHICLE_TYPE,
+                    ...(currentModel ? { model: currentModel } : { brand: currentBrand })
+                });
+                
+                const res = await fetch(`/api/satisfaction?${params}`);
+                const data = await res.json();
+                
+                renderSatisfactionChart(data);
+            } catch (e) {
+                console.error('Failed to load satisfaction:', e);
+            }
+        }
+        
+        async function loadDemographics() {
+            try {
+                const params = new URLSearchParams({
+                    vehicle_type: VEHICLE_TYPE,
+                    ...(currentModel ? { model: currentModel } : { brand: currentBrand })
+                });
+                
+                const res = await fetch(`/api/demographics?${params}`);
+                const data = await res.json();
+                
+                // Update top buyer type stat
+                if (data.persona && data.persona.length > 0) {
+                    const top = data.persona[0];
+                    const total = data.persona.reduce((s, p) => s + p.count, 0);
+                    document.getElementById('statBuyerType').textContent = PERSONA_LABELS[top.persona] || top.persona;
+                    document.getElementById('statBuyerPct').textContent = Math.round(top.count * 100 / total) + '% of buyers';
+                }
+                
+                renderPersonaChart(data.persona);
+                renderIntentChart(data.intent);
+                renderGenderChart(data.gender);
+            } catch (e) {
+                console.error('Failed to load demographics:', e);
+            }
+        }
+        
+        // ═══════════════════════════════════════════
+        // COMPARISON - Matching Hotels Exactly
+        // ═══════════════════════════════════════════
+        async function runComparison() {
+            let items = [];
+            
+            if (compareMode === 'brand') {
+                items = [
+                    document.getElementById('compareBrand1').value,
+                    document.getElementById('compareBrand2').value,
+                    document.getElementById('compareBrand3').value
+                ].filter(v => v);
+            } else {
+                items = [
+                    document.getElementById('compareModel1').value,
+                    document.getElementById('compareModel2').value,
+                    document.getElementById('compareModel3').value
+                ].filter(v => v);
+            }
+            
+            if (items.length < 2) {
+                document.getElementById('comparisonContent').innerHTML = '<p class="text-amber-400 text-center py-8">Please select at least 2 items to compare</p>';
+                return;
+            }
+            
+            const persona = document.getElementById('comparePersona').value;
+            const gender = document.getElementById('compareGender').value;
+            
+            try {
+                const params = new URLSearchParams({
+                    items: items.join(','),
+                    compare_by: compareMode,
+                    vehicle_type: VEHICLE_TYPE,
+                    ...(persona ? { persona } : {}),
+                    ...(gender ? { gender } : {})
+                });
+                
+                const res = await fetch(`/api/comparison?${params}`);
+                const data = await res.json();
+                
+                renderComparison(items, data);
+            } catch (e) {
+                console.error('Comparison error:', e);
+                document.getElementById('comparisonContent').innerHTML = '<p class="text-red-400 text-center py-8">Error loading comparison</p>';
+            }
+        }
+        
+        function renderComparison(items, data) {
+            // Get all aspects
+            const aspectSet = new Set();
+            items.forEach(item => {
+                (data[item]?.aspects || []).forEach(a => aspectSet.add(a.aspect_name || a.aspect));
+            });
+            const aspects = Array.from(aspectSet).sort();
+            
+            // Calculate item stats
+            const itemStats = items.map(item => {
+                const d = data[item]?.overall || {};
+                const pos = d.positive || 0;
+                const neg = d.negative || 0;
+                const total = d.total_mentions || 1;
+                return {
+                    item,
+                    totalMentions: total,
+                    posPct: Math.round(pos * 100 / total),
+                    negPct: Math.round(neg * 100 / total),
+                    netScore: Math.round((pos - neg) * 100 / total)
+                };
+            });
+            
+            const maxNetScore = Math.max(...itemStats.map(s => s.netScore));
+            
+            // Helper functions
+            const getNameSizeClass = (name) => {
+                if (name.length <= 12) return 'short';
+                if (name.length <= 25) return 'medium';
+                return 'long';
+            };
+            
+            const getItemHeader = (item, idx) => `
+                <th class="item-col">
+                    <div class="item-header">
+                        <div class="dot" style="background: ${itemColors[idx]}"></div>
+                        <div class="name ${getNameSizeClass(item)}">${item}</div>
+                    </div>
+                </th>
+            `;
+            
+            const legendHtml = `
+                <div class="legend">
+                    <span class="legend-text">Low</span>
+                    <div class="legend-box" style="background: rgba(127, 29, 29, 0.5);"></div>
+                    <div class="legend-box" style="background: rgba(161, 98, 7, 0.35);"></div>
+                    <div class="legend-box" style="background: rgba(21, 128, 61, 0.3);"></div>
+                    <div class="legend-box" style="background: rgba(13, 148, 136, 0.4);"></div>
+                    <div class="legend-box" style="background: rgba(13, 148, 136, 0.6);"></div>
+                    <span class="legend-text">High</span>
+                </div>
+            `;
+            
+            // 1. Satisfaction Score Section
+            let html = `
+                <div class="mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-md font-semibold text-purple-400">Satisfaction Score</h4>
+                        ${legendHtml}
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                ${items.map((item, i) => getItemHeader(item, i)).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-gray-300 font-medium">Review Count</td>
+                                ${itemStats.map(s => `<td><span class="heat-cell heat-high">${formatNumber(s.totalMentions)}</span></td>`).join('')}
+                            </tr>
+                            <tr>
+                                <td class="text-gray-300 font-medium">+ve Sentiment %</td>
+                                ${itemStats.map(s => `<td><span class="heat-cell ${getHeatClass(s.posPct)}">${s.posPct}%</span></td>`).join('')}
+                            </tr>
+                            <tr>
+                                <td class="text-gray-300 font-medium">-ve Sentiment %</td>
+                                ${itemStats.map(s => `<td><span class="heat-cell ${getHeatClassInverse(s.negPct)}">${s.negPct}%</span></td>`).join('')}
+                            </tr>
+                            <tr>
+                                <td class="text-gray-300 font-medium">Net Sentiment Score</td>
+                                ${itemStats.map(s => `<td><span class="heat-cell ${s.netScore === maxNetScore ? 'heat-vhigh' : getHeatClass(s.netScore + 50)}">${s.netScore}%</span></td>`).join('')}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            // Calculate total mentions per item for SOV
+            const totalMentionsPerItem = items.map(item => {
+                return data[item]?.aspects?.reduce((s, a) => s + (a.total_mentions || 0), 0) || 1;
+            });
+            
+            // 2. Driver Analysis Section (Share of Voice)
+            html += `
+                <div class="mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-md font-semibold text-purple-400">Driver Analysis</h4>
+                        ${legendHtml}
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                ${items.map((item, i) => getItemHeader(item, i)).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            for (const aspect of aspects) {
+                let totalSov = 0;
+                items.forEach((item, idx) => {
+                    const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
+                    const mentions = aspectData?.total_mentions || 0;
+                    totalSov += Math.round(mentions * 100 / totalMentionsPerItem[idx]);
+                });
+                const avgSov = totalSov / items.length;
+                
+                if (avgSov < 5) continue;
+                
+                html += `<tr><td class="text-gray-300">${ASPECT_ICONS[aspect] || ''} ${aspect}</td>`;
+                items.forEach((item, idx) => {
+                    const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
+                    const mentions = aspectData?.total_mentions || 0;
+                    const sov = Math.round(mentions * 100 / totalMentionsPerItem[idx]);
+                    html += `<td><span class="heat-cell ${getSovHeatClass(sov)}">${sov}%</span></td>`;
+                });
+                html += `</tr>`;
+            }
+            
+            html += `</tbody></table></div>`;
+            
+            // 3. Aspect-wise Comparison Section (satisfaction scores with winner)
+            html += `
+                <div class="mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-md font-semibold text-purple-400">Aspect-wise Comparison</h4>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Aspect</th>
+                                ${items.map((item, i) => getItemHeader(item, i)).join('')}
+                                <th class="text-center" style="width: 100px;">Winner</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            for (const aspect of aspects) {
+                const scores = items.map(item => {
+                    const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
+                    return aspectData?.satisfaction || 0;
+                });
+                
+                const maxScore = Math.max(...scores);
+                if (maxScore < 5) continue;
+                
+                const winnerIdx = scores.indexOf(maxScore);
+                const winner = maxScore > 0 ? items[winnerIdx] : '-';
+                
+                html += `<tr><td class="text-gray-300 font-medium">${ASPECT_ICONS[aspect] || ''} ${aspect}</td>`;
+                scores.forEach((score, idx) => {
+                    const isWinner = score === maxScore && score > 0;
+                    html += `<td><span class="heat-cell ${isWinner ? 'winner-cell' : getHeatClass(score)}">${score}%</span></td>`;
+                });
+                html += `<td class="text-purple-400 font-medium">${winner}</td></tr>`;
+            }
+            
+            html += `</tbody></table></div>`;
+            
+            // 4. Attribute Wins Section
+            const wins = {};
+            items.forEach(item => { wins[item] = []; });
+            
+            for (const aspect of aspects) {
+                const scores = items.map(item => {
+                    const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
+                    return { item, satisfaction: aspectData?.satisfaction || 0 };
+                });
+                const maxScore = Math.max(...scores.map(s => s.satisfaction));
+                
+                if (maxScore < 5) continue;
+                if (maxScore > 0) {
+                    const winner = scores.find(s => s.satisfaction === maxScore);
+                    if (winner) wins[winner.item].push({ aspect, score: winner.satisfaction });
+                }
+            }
+            
+            html += `
+                <div>
+                    <h4 class="text-md font-semibold text-purple-400 mb-2">Attribute Wins by ${compareMode === 'brand' ? 'Brand' : 'Model'} 🏆</h4>
+                    <p class="text-xs text-gray-500 mb-4">Attributes listed under the ${compareMode} that scores highest on them.</p>
+                    <div class="grid grid-cols-${items.length} gap-4">
+            `;
+            
+            items.forEach((item, i) => {
+                const itemWins = wins[item] || [];
+                const nameClass = getNameSizeClass(item);
+                html += `
+                    <div class="wins-column">
+                        <h4 class="flex items-center gap-2">
+                            <span class="inline-block w-3 h-3 rounded-full flex-shrink-0" style="background: ${itemColors[i]}"></span>
+                            <span class="truncate ${nameClass === 'long' ? 'text-xs' : nameClass === 'medium' ? 'text-sm' : ''}" title="${item}">${item}</span>
+                            <span class="text-gray-500 flex-shrink-0">(${itemWins.length})</span>
+                        </h4>
+                        ${itemWins.length > 0 
+                            ? itemWins.map(w => `<div class="win-item"><span class="aspect">${ASPECT_ICONS[w.aspect] || ''} ${w.aspect}</span><span class="score">${w.score}%</span></div>`).join('')
+                            : '<p class="text-xs text-gray-500 mt-2">No winning attributes</p>'
+                        }
+                    </div>
+                `;
+            });
+            
+            html += `</div></div>`;
+            document.getElementById('comparisonContent').innerHTML = html;
+        }
+        
+        // ═══════════════════════════════════════════
+        // CHARTS
+        // ═══════════════════════════════════════════
+        function renderSOVChart(data) {
+            if (charts.sov) charts.sov.destroy();
+            
+            const options = {
+                series: [{
+                    data: data.map(d => d.share_of_voice)
+                }],
+                chart: { type: 'bar', height: 350, toolbar: { show: false }, background: 'transparent' },
+                plotOptions: { bar: { horizontal: true, borderRadius: 4 } },
+                colors: ['#667eea'],
+                xaxis: { 
+                    categories: data.map(d => (ASPECT_ICONS[d.aspect] || '') + ' ' + d.aspect),
+                    labels: { style: { colors: '#94a3b8' } }
+                },
+                yaxis: { labels: { style: { colors: '#e2e8f0' } } },
+                dataLabels: { enabled: true, formatter: v => v + '%', style: { colors: ['#fff'] } },
+                tooltip: { theme: 'dark' },
+                grid: { borderColor: 'rgba(255,255,255,0.1)' }
+            };
+            
+            charts.sov = new ApexCharts(document.getElementById('sovChart'), options);
+            charts.sov.render();
+        }
+        
+        function renderRadarChart(data) {
+            if (charts.radar) charts.radar.destroy();
+            
+            const options = {
+                series: [{
+                    name: 'Satisfaction',
+                    data: data.map(d => d.satisfaction)
+                }],
+                chart: { type: 'radar', height: 350, toolbar: { show: false }, background: 'transparent' },
+                colors: ['#667eea'],
+                xaxis: { categories: data.map(d => d.aspect) },
+                yaxis: { max: 100, tickAmount: 5 },
+                stroke: { width: 2 },
+                fill: { opacity: 0.3 },
+                markers: { size: 4 },
+                tooltip: { theme: 'dark' }
+            };
+            
+            charts.radar = new ApexCharts(document.getElementById('radarChart'), options);
+            charts.radar.render();
+        }
+        
+        function renderSatisfactionChart(data) {
+            if (charts.satisfaction) charts.satisfaction.destroy();
+            
+            const sorted = [...data].sort((a, b) => b.satisfaction - a.satisfaction);
+            
+            const options = {
+                series: [{
+                    name: 'Positive',
+                    data: sorted.map(d => d.positive_count)
+                }, {
+                    name: 'Negative',
+                    data: sorted.map(d => -d.negative_count)
+                }],
+                chart: { type: 'bar', height: 400, stacked: true, toolbar: { show: false }, background: 'transparent' },
+                colors: ['#10b981', '#ef4444'],
+                plotOptions: { bar: { horizontal: true, borderRadius: 4 } },
+                xaxis: { 
+                    categories: sorted.map(d => (ASPECT_ICONS[d.aspect] || '') + ' ' + d.aspect),
+                    labels: { 
+                        style: { colors: '#94a3b8' },
+                        formatter: v => Math.abs(v)
+                    }
+                },
+                yaxis: { labels: { style: { colors: '#e2e8f0' } } },
+                tooltip: { 
+                    theme: 'dark',
+                    y: { formatter: v => Math.abs(v) + ' mentions' }
+                },
+                legend: { labels: { colors: '#e2e8f0' } },
+                grid: { borderColor: 'rgba(255,255,255,0.1)' }
+            };
+            
+            charts.satisfaction = new ApexCharts(document.getElementById('satisfactionChart'), options);
+            charts.satisfaction.render();
+        }
+        
+        function renderPersonaChart(data) {
+            if (charts.persona) charts.persona.destroy();
+            
+            const options = {
+                series: data.slice(0, 5).map(d => d.count),
+                labels: data.slice(0, 5).map(d => PERSONA_LABELS[d.persona] || d.persona),
+                chart: { type: 'donut', height: 280, background: 'transparent' },
+                colors: ['#667eea', '#8b5cf6', '#a78bfa', '#c4b5fd', '#e9d5ff'],
+                legend: { position: 'bottom', labels: { colors: '#e2e8f0' } },
+                dataLabels: { enabled: false },
+                tooltip: { theme: 'dark' }
+            };
+            
+            charts.persona = new ApexCharts(document.getElementById('personaChart'), options);
+            charts.persona.render();
+        }
+        
+        function renderIntentChart(data) {
+            if (charts.intent) charts.intent.destroy();
+            
+            const options = {
+                series: data.slice(0, 5).map(d => d.count),
+                labels: data.slice(0, 5).map(d => d.intent),
+                chart: { type: 'donut', height: 280, background: 'transparent' },
+                colors: ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#d1fae5'],
+                legend: { position: 'bottom', labels: { colors: '#e2e8f0' } },
+                dataLabels: { enabled: false },
+                tooltip: { theme: 'dark' }
+            };
+            
+            charts.intent = new ApexCharts(document.getElementById('intentChart'), options);
+            charts.intent.render();
+        }
+        
+        function renderGenderChart(data) {
+            if (charts.gender) charts.gender.destroy();
+            
+            const labels = data.map(d => d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : 'Unknown');
+            
+            const options = {
+                series: data.map(d => d.count),
+                labels: labels,
+                chart: { type: 'donut', height: 280, background: 'transparent' },
+                colors: ['#3b82f6', '#ec4899', '#94a3b8'],
+                legend: { position: 'bottom', labels: { colors: '#e2e8f0' } },
+                dataLabels: { enabled: false },
+                tooltip: { theme: 'dark' }
+            };
+            
+            charts.gender = new ApexCharts(document.getElementById('genderChart'), options);
+            charts.gender.render();
+        }
+        
+        // ═══════════════════════════════════════════
+        // HELPERS
+        // ═══════════════════════════════════════════
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById(tabName + 'Tab').classList.remove('hidden');
+            
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('active');
+                b.classList.add('text-gray-400');
+            });
+            event.target.classList.add('active');
+            event.target.classList.remove('text-gray-400');
+        }
+        
+        function getHeatClass(value) {
+            if (value >= 80) return 'heat-vhigh';
+            if (value >= 65) return 'heat-high';
+            if (value >= 45) return 'heat-med';
+            if (value >= 30) return 'heat-low';
+            return 'heat-vlow';
+        }
+        
+        function getSovHeatClass(value) {
+            if (value >= 25) return 'heat-vhigh';
+            if (value >= 15) return 'heat-high';
+            if (value >= 8) return 'heat-med';
+            if (value >= 3) return 'heat-low';
+            return 'heat-vlow';
+        }
+        
+        function getHeatClassInverse(value) {
+            if (value <= 20) return 'heat-vhigh';
+            if (value <= 30) return 'heat-high';
+            if (value <= 40) return 'heat-med';
+            return 'heat-low';
+        }
+        
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(0) + 'k';
+            return num.toLocaleString();
+        }
+        
+        // ═══════════════════════════════════════════
+        // CHAT
+        // ═══════════════════════════════════════════
+        function openChat() {
+            document.getElementById('chatPanel').classList.add('open');
+            document.getElementById('chatPanel').classList.remove('collapsed');
+            document.getElementById('chatOverlay').classList.remove('hidden');
+        }
+        
+        function closeChat() {
+            document.getElementById('chatPanel').classList.remove('open');
+            document.getElementById('chatOverlay').classList.add('hidden');
+        }
+        
+        function collapseChat() {
+            document.getElementById('chatPanel').classList.add('collapsed');
+        }
+        
+        function expandChat() {
+            document.getElementById('chatPanel').classList.remove('collapsed');
+        }
+    </script>
+</body>
+</html>
