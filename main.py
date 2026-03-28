@@ -65,6 +65,98 @@ ASPECT_ICONS = {
     "Build": "🔩"
 }
 
+# Map non-standard aspects to standard ones
+ASPECT_MAPPING = {
+    # Direct matches (lowercase to standard)
+    "performance": "Performance",
+    "comfort": "Comfort",
+    "safety": "Safety",
+    "features": "Features",
+    "space": "Space",
+    "mileage": "Mileage",
+    "ownership": "Ownership",
+    "value": "Value",
+    "brand": "Brand",
+    "style": "Style",
+    "handling": "Handling",
+    "build": "Build",
+    # Common variations
+    "design": "Style",
+    "looks": "Style",
+    "aesthetics": "Style",
+    "styling": "Style",
+    "appearance": "Style",
+    "price": "Value",
+    "cost": "Value",
+    "pricing": "Value",
+    "money": "Value",
+    "affordable": "Value",
+    "maintenance": "Ownership",
+    "service": "Ownership",
+    "after-sales": "Ownership",
+    "after sales": "Ownership",
+    "aftersales": "Ownership",
+    "reliability": "Build",
+    "quality": "Build",
+    "build quality": "Build",
+    "durability": "Build",
+    "engine": "Performance",
+    "power": "Performance",
+    "acceleration": "Performance",
+    "speed": "Performance",
+    "ride": "Comfort",
+    "ride quality": "Comfort",
+    "seating": "Comfort",
+    "interior": "Comfort",
+    "boot": "Space",
+    "storage": "Space",
+    "legroom": "Space",
+    "headroom": "Space",
+    "fuel": "Mileage",
+    "fuel efficiency": "Mileage",
+    "fuel economy": "Mileage",
+    "economy": "Mileage",
+    "technology": "Features",
+    "infotainment": "Features",
+    "tech": "Features",
+    "airbags": "Safety",
+    "brakes": "Safety",
+    "abs": "Safety",
+    "braking": "Safety",
+    # Additional variations that might come from LLM
+    "overall": None,  # Skip "Overall" aspect
+    "availability": None,  # Skip availability
+    "general": None,  # Skip general
+}
+
+# Standard aspects for validation
+STANDARD_ASPECTS = {"Performance", "Comfort", "Safety", "Features", "Space", "Mileage", "Ownership", "Value", "Brand", "Style", "Handling", "Build"}
+
+def normalize_aspect(aspect: str) -> str:
+    """Map raw aspect to standard aspect name"""
+    if not aspect:
+        return None
+    
+    aspect_stripped = aspect.strip()
+    
+    # If already a standard aspect (case-insensitive match)
+    for std in STANDARD_ASPECTS:
+        if aspect_stripped.lower() == std.lower():
+            return std
+    
+    # Try mapping
+    aspect_lower = aspect_stripped.lower()
+    mapped = ASPECT_MAPPING.get(aspect_lower, None)
+    
+    # If mapped to None explicitly, skip it
+    if aspect_lower in ASPECT_MAPPING and mapped is None:
+        return None
+    
+    return mapped
+
+# Minimum mentions threshold
+MIN_MENTIONS_THRESHOLD = 5
+
 PERSONAS = ["value_seeker", "enthusiast", "family", "commuter", "first_buyer", "tech"]
 INTENTS = ["considering", "bought", "owns", "rejected", "recommending", "warning"]
 
@@ -259,36 +351,55 @@ async def get_drivers(
     if persona:
         where_clauses.append(f"persona = '{persona.replace(chr(39), chr(39)+chr(39))}'")
     
+    # Get raw aspect data
     query = f"""
-    WITH aspect_data AS (
-        SELECT 
-            aspect,
-            SUM(CASE WHEN sentiment = 1 THEN 1 ELSE 0 END) AS positive_count,
-            SUM(CASE WHEN sentiment = -1 THEN 1 ELSE 0 END) AS negative_count,
-            COUNT(*) AS total_mentions
-        FROM `{PROJECT}.{DATASET}.aspects`
-        WHERE {' AND '.join(where_clauses)}
-        GROUP BY aspect
-    ),
-    total AS (
-        SELECT SUM(total_mentions) AS grand_total FROM aspect_data
-    )
     SELECT 
-        a.aspect,
-        a.positive_count,
-        a.negative_count,
-        a.total_mentions,
-        ROUND(a.total_mentions * 100.0 / NULLIF(t.grand_total, 0), 0) AS share_of_voice,
-        ROUND(a.positive_count * 100.0 / NULLIF(a.total_mentions, 0), 0) AS satisfaction
-    FROM aspect_data a, total t
-    ORDER BY share_of_voice DESC
+        aspect,
+        SUM(CASE WHEN sentiment = 1 THEN 1 ELSE 0 END) AS positive_count,
+        SUM(CASE WHEN sentiment = -1 THEN 1 ELSE 0 END) AS negative_count,
+        COUNT(*) AS total_mentions
+    FROM `{PROJECT}.{DATASET}.aspects`
+    WHERE {' AND '.join(where_clauses)}
+    GROUP BY aspect
     """
     
     try:
-        result = c.query(query).to_dataframe()
-        result = clean_dataframe(result)
-        result['icon'] = result['aspect'].map(ASPECT_ICONS)
-        return result.to_dict(orient='records')
+        raw_result = c.query(query).to_dataframe()
+        raw_result = clean_dataframe(raw_result)
+        
+        # Normalize aspects and aggregate
+        raw_result['normalized_aspect'] = raw_result['aspect'].apply(normalize_aspect)
+        
+        # Filter out unmapped aspects
+        mapped = raw_result[raw_result['normalized_aspect'].notna()].copy()
+        
+        if mapped.empty:
+            return []
+        
+        # Aggregate by normalized aspect
+        aggregated = mapped.groupby('normalized_aspect').agg({
+            'positive_count': 'sum',
+            'negative_count': 'sum',
+            'total_mentions': 'sum'
+        }).reset_index()
+        aggregated.columns = ['aspect', 'positive_count', 'negative_count', 'total_mentions']
+        
+        # Filter out aspects with < MIN_MENTIONS_THRESHOLD mentions
+        aggregated = aggregated[aggregated['total_mentions'] >= MIN_MENTIONS_THRESHOLD]
+        
+        if aggregated.empty:
+            return []
+        
+        # Calculate metrics
+        grand_total = aggregated['total_mentions'].sum()
+        aggregated['share_of_voice'] = (aggregated['total_mentions'] * 100.0 / grand_total).round(0)
+        aggregated['satisfaction'] = (aggregated['positive_count'] * 100.0 / aggregated['total_mentions'].replace(0, 1)).round(0)
+        
+        # Add icons and sort
+        aggregated['icon'] = aggregated['aspect'].map(ASPECT_ICONS)
+        aggregated = aggregated.sort_values('share_of_voice', ascending=False)
+        
+        return clean_dataframe(aggregated).to_dict(orient='records')
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -322,19 +433,43 @@ async def get_satisfaction(
         aspect,
         SUM(CASE WHEN sentiment = 1 THEN 1 ELSE 0 END) AS positive_count,
         SUM(CASE WHEN sentiment = -1 THEN 1 ELSE 0 END) AS negative_count,
-        COUNT(*) AS total_mentions,
-        ROUND(SUM(CASE WHEN sentiment = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 0) AS satisfaction
+        COUNT(*) AS total_mentions
     FROM `{PROJECT}.{DATASET}.aspects`
     WHERE {' AND '.join(where_clauses)}
     GROUP BY aspect
-    ORDER BY total_mentions DESC
     """
     
     try:
-        result = c.query(query).to_dataframe()
-        result = clean_dataframe(result)
-        result['icon'] = result['aspect'].map(ASPECT_ICONS)
-        return result.to_dict(orient='records')
+        raw_result = c.query(query).to_dataframe()
+        raw_result = clean_dataframe(raw_result)
+        
+        # Normalize aspects
+        raw_result['normalized_aspect'] = raw_result['aspect'].apply(normalize_aspect)
+        mapped = raw_result[raw_result['normalized_aspect'].notna()].copy()
+        
+        if mapped.empty:
+            return []
+        
+        # Aggregate by normalized aspect
+        aggregated = mapped.groupby('normalized_aspect').agg({
+            'positive_count': 'sum',
+            'negative_count': 'sum',
+            'total_mentions': 'sum'
+        }).reset_index()
+        aggregated.columns = ['aspect', 'positive_count', 'negative_count', 'total_mentions']
+        
+        # Filter out aspects with < MIN_MENTIONS_THRESHOLD mentions
+        aggregated = aggregated[aggregated['total_mentions'] >= MIN_MENTIONS_THRESHOLD]
+        
+        if aggregated.empty:
+            return []
+        
+        # Calculate satisfaction
+        aggregated['satisfaction'] = (aggregated['positive_count'] * 100.0 / aggregated['total_mentions'].replace(0, 1)).round(0)
+        aggregated['icon'] = aggregated['aspect'].map(ASPECT_ICONS)
+        aggregated = aggregated.sort_values('total_mentions', ascending=False)
+        
+        return clean_dataframe(aggregated).to_dict(orient='records')
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -426,33 +561,44 @@ async def get_comparison(
         aspect,
         SUM(CASE WHEN sentiment = 1 THEN 1 ELSE 0 END) AS positive_count,
         SUM(CASE WHEN sentiment = -1 THEN 1 ELSE 0 END) AS negative_count,
-        COUNT(*) AS total_mentions,
-        ROUND(SUM(CASE WHEN sentiment = 1 THEN 1 ELSE 0 END) * 100.0 / 
-              NULLIF(COUNT(*), 0), 0) AS satisfaction
+        COUNT(*) AS total_mentions
     FROM `{PROJECT}.{DATASET}.aspects`
     WHERE {vehicle_filter} AND {name_field} IN ('{items_sql}') {extra_where}
     GROUP BY {name_field}, aspect
-    ORDER BY {name_field}, aspect
     """
     
     try:
-        result = c.query(query).to_dataframe()
+        raw_result = c.query(query).to_dataframe()
+        raw_result = clean_dataframe(raw_result)
         
-        result = clean_dataframe(result)
+        # Normalize aspects
+        raw_result['normalized_aspect'] = raw_result['aspect'].apply(normalize_aspect)
+        mapped = raw_result[raw_result['normalized_aspect'].notna()].copy()
+        
         comparison = {}
         for item in item_list:
-            item_data = result[result['item_name'] == item]
+            item_data = mapped[mapped['item_name'] == item]
             if not item_data.empty:
-                total_pos = int(item_data['positive_count'].sum())
-                total_neg = int(item_data['negative_count'].sum())
-                total_mentions = int(item_data['total_mentions'].sum())
+                # Aggregate by normalized aspect
+                agg = item_data.groupby('normalized_aspect').agg({
+                    'positive_count': 'sum',
+                    'negative_count': 'sum',
+                    'total_mentions': 'sum'
+                }).reset_index()
+                agg.columns = ['aspect', 'positive_count', 'negative_count', 'total_mentions']
                 
-                # Add aspect_name field to match hotels structure
-                aspects = item_data.copy()
-                aspects['aspect_name'] = aspects['aspect']
+                # Filter out aspects with < MIN_MENTIONS_THRESHOLD mentions
+                agg = agg[agg['total_mentions'] >= MIN_MENTIONS_THRESHOLD]
+                
+                agg['satisfaction'] = (agg['positive_count'] * 100.0 / agg['total_mentions'].replace(0, 1)).round(0)
+                agg['aspect_name'] = agg['aspect']
+                
+                total_pos = int(agg['positive_count'].sum())
+                total_neg = int(agg['negative_count'].sum())
+                total_mentions = int(agg['total_mentions'].sum())
                 
                 comparison[item] = {
-                    "aspects": clean_dataframe(aspects).to_dict(orient='records'),
+                    "aspects": clean_dataframe(agg).to_dict(orient='records'),
                     "overall": {
                         "positive": total_pos,
                         "negative": total_neg,

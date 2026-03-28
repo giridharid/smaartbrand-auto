@@ -885,21 +885,32 @@
             
             for (const aspect of aspects) {
                 let totalSov = 0;
+                let validCount = 0;
                 items.forEach((item, idx) => {
                     const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
                     const mentions = aspectData?.total_mentions || 0;
-                    totalSov += Math.round(mentions * 100 / totalMentionsPerItem[idx]);
+                    if (mentions >= 10) {
+                        totalSov += Math.round(mentions * 100 / totalMentionsPerItem[idx]);
+                        validCount++;
+                    }
                 });
-                const avgSov = totalSov / items.length;
                 
-                if (avgSov < 5) continue;
+                // Skip if no items have >= 10 mentions for this aspect
+                if (validCount === 0) continue;
+                
+                const avgSov = totalSov / Math.max(validCount, 1);
+                if (avgSov < 3) continue;
                 
                 html += `<tr><td class="text-gray-300">${ASPECT_ICONS[aspect] || ''} ${aspect}</td>`;
                 items.forEach((item, idx) => {
                     const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
                     const mentions = aspectData?.total_mentions || 0;
-                    const sov = Math.round(mentions * 100 / totalMentionsPerItem[idx]);
-                    html += `<td><span class="heat-cell ${getSovHeatClass(sov)}">${sov}%</span></td>`;
+                    if (mentions < 10) {
+                        html += `<td><span class="heat-cell heat-neutral">--</span></td>`;
+                    } else {
+                        const sov = Math.round(mentions * 100 / totalMentionsPerItem[idx]);
+                        html += `<td><span class="heat-cell ${getSovHeatClass(sov)}">${sov}%</span></td>`;
+                    }
                 });
                 html += `</tr>`;
             }
@@ -924,21 +935,32 @@
             `;
             
             for (const aspect of aspects) {
-                const scores = items.map(item => {
+                const aspectInfo = items.map(item => {
                     const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
-                    return aspectData?.satisfaction || 0;
+                    return {
+                        satisfaction: aspectData?.satisfaction || 0,
+                        mentions: aspectData?.total_mentions || 0
+                    };
                 });
                 
-                const maxScore = Math.max(...scores);
-                if (maxScore < 5) continue;
+                // Skip if all items have < 10 mentions for this aspect
+                const validScores = aspectInfo.filter(a => a.mentions >= 10);
+                if (validScores.length === 0) continue;
+                
+                const scores = aspectInfo.map(a => a.mentions >= 10 ? a.satisfaction : -1);
+                const maxScore = Math.max(...scores.filter(s => s >= 0));
                 
                 const winnerIdx = scores.indexOf(maxScore);
                 const winner = maxScore > 0 ? items[winnerIdx] : '-';
                 
                 html += `<tr><td class="text-gray-300 font-medium">${ASPECT_ICONS[aspect] || ''} ${aspect}</td>`;
-                scores.forEach((score, idx) => {
-                    const isWinner = score === maxScore && score > 0;
-                    html += `<td><span class="heat-cell ${isWinner ? 'winner-cell' : getHeatClass(score)}">${score}%</span></td>`;
+                aspectInfo.forEach((info, idx) => {
+                    if (info.mentions < 10) {
+                        html += `<td><span class="heat-cell heat-neutral">--</span></td>`;
+                    } else {
+                        const isWinner = info.satisfaction === maxScore && info.satisfaction > 0;
+                        html += `<td><span class="heat-cell ${isWinner ? 'winner-cell' : getHeatClass(info.satisfaction)}">${info.satisfaction}%</span></td>`;
+                    }
                 });
                 html += `<td class="text-purple-400 font-medium">${winner}</td></tr>`;
             }
@@ -952,13 +974,20 @@
             for (const aspect of aspects) {
                 const scores = items.map(item => {
                     const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
-                    return { item, satisfaction: aspectData?.satisfaction || 0 };
+                    const mentions = aspectData?.total_mentions || 0;
+                    return { 
+                        item, 
+                        satisfaction: mentions >= 10 ? (aspectData?.satisfaction || 0) : -1,
+                        mentions 
+                    };
                 });
-                const maxScore = Math.max(...scores.map(s => s.satisfaction));
+                const validScores = scores.filter(s => s.satisfaction >= 0);
+                if (validScores.length === 0) continue;
                 
-                if (maxScore < 5) continue;
+                const maxScore = Math.max(...validScores.map(s => s.satisfaction));
+                
                 if (maxScore > 0) {
-                    const winner = scores.find(s => s.satisfaction === maxScore);
+                    const winner = validScores.find(s => s.satisfaction === maxScore);
                     if (winner) wins[winner.item].push({ aspect, score: winner.satisfaction });
                 }
             }
@@ -1085,25 +1114,45 @@
                 return;
             }
             
+            const chartData = data.slice(0, 6);
+            const total = chartData.reduce((sum, d) => sum + d.count, 0);
+            
             const options = {
-                series: data.slice(0, 6).map(d => d.count),
-                labels: data.slice(0, 6).map(d => PERSONA_LABELS[d.persona] || d.persona),
+                series: chartData.map(d => d.count),
+                labels: chartData.map(d => {
+                    const label = PERSONA_LABELS[d.persona] || d.persona;
+                    const pct = Math.round(d.count * 100 / total);
+                    return `${label} (${pct}%)`;
+                }),
                 chart: { type: 'donut', height: 280, background: 'transparent' },
                 colors: cbSafePalette,
                 legend: { 
                     position: 'bottom', 
                     labels: { colors: '#e2e8f0' },
-                    fontSize: '12px',
+                    fontSize: '11px',
                     markers: { width: 10, height: 10, radius: 2 }
                 },
-                dataLabels: { enabled: false },
-                tooltip: { theme: 'dark' },
+                dataLabels: { 
+                    enabled: true,
+                    formatter: (val) => Math.round(val) + '%',
+                    style: { fontSize: '11px', colors: ['#fff'] }
+                },
+                tooltip: { 
+                    theme: 'dark',
+                    y: { formatter: (val) => formatNumber(val) + ' mentions' }
+                },
                 plotOptions: {
                     pie: {
                         donut: {
+                            size: '55%',
                             labels: {
                                 show: true,
-                                total: { show: true, label: 'Total', color: '#9ca3af' }
+                                total: { 
+                                    show: true, 
+                                    label: 'Total', 
+                                    color: '#9ca3af',
+                                    formatter: () => formatNumber(total)
+                                }
                             }
                         }
                     }
@@ -1131,25 +1180,45 @@
                 'warning': 'Warning'
             };
             
+            const chartData = data.slice(0, 6);
+            const total = chartData.reduce((sum, d) => sum + d.count, 0);
+            
             const options = {
-                series: data.slice(0, 6).map(d => d.count),
-                labels: data.slice(0, 6).map(d => intentLabels[d.intent] || d.intent),
+                series: chartData.map(d => d.count),
+                labels: chartData.map(d => {
+                    const label = intentLabels[d.intent] || d.intent;
+                    const pct = Math.round(d.count * 100 / total);
+                    return `${label} (${pct}%)`;
+                }),
                 chart: { type: 'donut', height: 280, background: 'transparent' },
                 colors: cbSafePalette,
                 legend: { 
                     position: 'bottom', 
                     labels: { colors: '#e2e8f0' },
-                    fontSize: '12px',
+                    fontSize: '11px',
                     markers: { width: 10, height: 10, radius: 2 }
                 },
-                dataLabels: { enabled: false },
-                tooltip: { theme: 'dark' },
+                dataLabels: { 
+                    enabled: true,
+                    formatter: (val) => Math.round(val) + '%',
+                    style: { fontSize: '11px', colors: ['#fff'] }
+                },
+                tooltip: { 
+                    theme: 'dark',
+                    y: { formatter: (val) => formatNumber(val) + ' mentions' }
+                },
                 plotOptions: {
                     pie: {
                         donut: {
+                            size: '55%',
                             labels: {
                                 show: true,
-                                total: { show: true, label: 'Total', color: '#9ca3af' }
+                                total: { 
+                                    show: true, 
+                                    label: 'Total', 
+                                    color: '#9ca3af',
+                                    formatter: () => formatNumber(total)
+                                }
                             }
                         }
                     }
@@ -1168,27 +1237,44 @@
                 return;
             }
             
-            const labels = data.map(d => d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : 'Unknown');
+            const total = data.reduce((sum, d) => sum + d.count, 0);
             
             const options = {
                 series: data.map(d => d.count),
-                labels: labels,
+                labels: data.map(d => {
+                    const label = d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : 'Unknown';
+                    const pct = Math.round(d.count * 100 / total);
+                    return `${label} (${pct}%)`;
+                }),
                 chart: { type: 'donut', height: 280, background: 'transparent' },
-                colors: ['#0072B2', '#D55E00', '#94a3b8'],
+                colors: cbSafePalette,
                 legend: { 
                     position: 'bottom', 
                     labels: { colors: '#e2e8f0' },
-                    fontSize: '12px',
+                    fontSize: '11px',
                     markers: { width: 10, height: 10, radius: 2 }
                 },
-                dataLabels: { enabled: false },
-                tooltip: { theme: 'dark' },
+                dataLabels: { 
+                    enabled: true,
+                    formatter: (val) => Math.round(val) + '%',
+                    style: { fontSize: '11px', colors: ['#fff'] }
+                },
+                tooltip: { 
+                    theme: 'dark',
+                    y: { formatter: (val) => formatNumber(val) + ' mentions' }
+                },
                 plotOptions: {
                     pie: {
                         donut: {
+                            size: '55%',
                             labels: {
                                 show: true,
-                                total: { show: true, label: 'Total', color: '#9ca3af' }
+                                total: { 
+                                    show: true, 
+                                    label: 'Total', 
+                                    color: '#9ca3af',
+                                    formatter: () => formatNumber(total)
+                                }
                             }
                         }
                     }
