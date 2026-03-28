@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smaartbrand | Decision Intelligence</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23667eea'/%3E%3Cpath d='M25 55 L40 45 L50 50 L75 35' stroke='white' stroke-width='4' fill='none'/%3E%3C/svg%3E">
+    <link rel="icon" id="favicon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -446,6 +446,20 @@
         
         const itemColors = ['#f59e0b', '#8b5cf6', '#10b981', '#3b82f6'];
         
+        // Colorblind-safe palette (Wong palette)
+        const cbSafePalette = ['#0072B2', '#D55E00', '#009E73', '#F0E442', '#CC79A7', '#56B4E9', '#E69F00'];
+        
+        // Loading state helper
+        function setLoading(isLoading) {
+            const statsContainer = document.querySelector('.grid.grid-cols-4');
+            if (isLoading) {
+                document.getElementById('statOverall').textContent = '...';
+                document.getElementById('statStrength').textContent = 'Loading...';
+                document.getElementById('statWeakness').textContent = 'Loading...';
+                document.getElementById('statBuyerType').textContent = 'Loading...';
+            }
+        }
+        
         // ═══════════════════════════════════════════
         // INITIALIZATION - Load config first
         // ═══════════════════════════════════════════
@@ -466,6 +480,10 @@
                 document.getElementById('appTitle').textContent = config.title;
                 document.getElementById('appSubtitle').textContent = config.subtitle;
                 document.getElementById('chatContextLabel').textContent = config.subtitle + ' AI';
+                
+                // Update favicon based on vehicle type
+                const faviconEmoji = config.vehicle_type === 'bike' ? '🏍️' : '🚗';
+                document.getElementById('favicon').href = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${faviconEmoji}</text></svg>`;
                 
                 console.log(`[CONFIG] Running in ${config.vehicle_type.toUpperCase()} mode`);
             } catch (e) {
@@ -604,6 +622,7 @@
         async function loadAllData() {
             if (!currentBrand) return;
             
+            setLoading(true);
             updateContextHeader();
             
             await Promise.all([
@@ -724,6 +743,11 @@
                 return;
             }
             
+            // Show loading
+            document.getElementById('comparisonContent').innerHTML = '<div class="text-center py-12"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500 mb-4"></div><p class="text-gray-400">Loading comparison...</p></div>';
+            document.getElementById('runCompareBtn').disabled = true;
+            document.getElementById('runCompareBtn').textContent = 'Loading...';
+            
             const persona = document.getElementById('comparePersona').value;
             const gender = document.getElementById('compareGender').value;
             
@@ -742,6 +766,9 @@
             } catch (e) {
                 console.error('Comparison error:', e);
                 document.getElementById('comparisonContent').innerHTML = '<p class="text-red-400 text-center py-8">Error loading comparison</p>';
+            } finally {
+                document.getElementById('runCompareBtn').disabled = false;
+                document.getElementById('runCompareBtn').textContent = 'Compare';
             }
         }
         
@@ -1053,14 +1080,34 @@
         function renderPersonaChart(data) {
             if (charts.persona) charts.persona.destroy();
             
+            if (!data || data.length === 0) {
+                document.getElementById('personaChart').innerHTML = '<p class="text-gray-500 text-center py-8">No data available</p>';
+                return;
+            }
+            
             const options = {
-                series: data.slice(0, 5).map(d => d.count),
-                labels: data.slice(0, 5).map(d => PERSONA_LABELS[d.persona] || d.persona),
+                series: data.slice(0, 6).map(d => d.count),
+                labels: data.slice(0, 6).map(d => PERSONA_LABELS[d.persona] || d.persona),
                 chart: { type: 'donut', height: 280, background: 'transparent' },
-                colors: ['#667eea', '#8b5cf6', '#a78bfa', '#c4b5fd', '#e9d5ff'],
-                legend: { position: 'bottom', labels: { colors: '#e2e8f0' } },
+                colors: cbSafePalette,
+                legend: { 
+                    position: 'bottom', 
+                    labels: { colors: '#e2e8f0' },
+                    fontSize: '12px',
+                    markers: { width: 10, height: 10, radius: 2 }
+                },
                 dataLabels: { enabled: false },
-                tooltip: { theme: 'dark' }
+                tooltip: { theme: 'dark' },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            labels: {
+                                show: true,
+                                total: { show: true, label: 'Total', color: '#9ca3af' }
+                            }
+                        }
+                    }
+                }
             };
             
             charts.persona = new ApexCharts(document.getElementById('personaChart'), options);
@@ -1070,14 +1117,43 @@
         function renderIntentChart(data) {
             if (charts.intent) charts.intent.destroy();
             
+            if (!data || data.length === 0) {
+                document.getElementById('intentChart').innerHTML = '<p class="text-gray-500 text-center py-8">No data available</p>';
+                return;
+            }
+            
+            const intentLabels = {
+                'considering': 'Considering',
+                'bought': 'Bought',
+                'owns': 'Owns',
+                'rejected': 'Rejected',
+                'recommending': 'Recommending',
+                'warning': 'Warning'
+            };
+            
             const options = {
-                series: data.slice(0, 5).map(d => d.count),
-                labels: data.slice(0, 5).map(d => d.intent),
+                series: data.slice(0, 6).map(d => d.count),
+                labels: data.slice(0, 6).map(d => intentLabels[d.intent] || d.intent),
                 chart: { type: 'donut', height: 280, background: 'transparent' },
-                colors: ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#d1fae5'],
-                legend: { position: 'bottom', labels: { colors: '#e2e8f0' } },
+                colors: cbSafePalette,
+                legend: { 
+                    position: 'bottom', 
+                    labels: { colors: '#e2e8f0' },
+                    fontSize: '12px',
+                    markers: { width: 10, height: 10, radius: 2 }
+                },
                 dataLabels: { enabled: false },
-                tooltip: { theme: 'dark' }
+                tooltip: { theme: 'dark' },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            labels: {
+                                show: true,
+                                total: { show: true, label: 'Total', color: '#9ca3af' }
+                            }
+                        }
+                    }
+                }
             };
             
             charts.intent = new ApexCharts(document.getElementById('intentChart'), options);
@@ -1087,16 +1163,36 @@
         function renderGenderChart(data) {
             if (charts.gender) charts.gender.destroy();
             
+            if (!data || data.length === 0) {
+                document.getElementById('genderChart').innerHTML = '<p class="text-gray-500 text-center py-8">No data available</p>';
+                return;
+            }
+            
             const labels = data.map(d => d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : 'Unknown');
             
             const options = {
                 series: data.map(d => d.count),
                 labels: labels,
                 chart: { type: 'donut', height: 280, background: 'transparent' },
-                colors: ['#3b82f6', '#ec4899', '#94a3b8'],
-                legend: { position: 'bottom', labels: { colors: '#e2e8f0' } },
+                colors: ['#0072B2', '#D55E00', '#94a3b8'],
+                legend: { 
+                    position: 'bottom', 
+                    labels: { colors: '#e2e8f0' },
+                    fontSize: '12px',
+                    markers: { width: 10, height: 10, radius: 2 }
+                },
                 dataLabels: { enabled: false },
-                tooltip: { theme: 'dark' }
+                tooltip: { theme: 'dark' },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            labels: {
+                                show: true,
+                                total: { show: true, label: 'Total', color: '#9ca3af' }
+                            }
+                        }
+                    }
+                }
             };
             
             charts.gender = new ApexCharts(document.getElementById('genderChart'), options);
