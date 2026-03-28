@@ -68,6 +68,12 @@ ASPECT_ICONS = {
 PERSONAS = ["value_seeker", "enthusiast", "family", "commuter", "first_buyer", "tech"]
 INTENTS = ["considering", "bought", "owns", "rejected", "recommending", "warning"]
 
+import numpy as np
+
+def clean_dataframe(df):
+    """Replace NaN and Infinity with 0 for JSON serialization"""
+    return df.replace([np.inf, -np.inf], 0).fillna(0)
+
 # ─────────────────────────────────────────
 # CREDENTIALS & CLIENT
 # ─────────────────────────────────────────
@@ -203,7 +209,7 @@ async def get_models(brand: Optional[str] = None):
     
     try:
         result = c.query(query).to_dataframe()
-        return result.to_dict(orient='records')
+        return clean_dataframe(result).to_dict(orient='records')
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -280,6 +286,7 @@ async def get_drivers(
     
     try:
         result = c.query(query).to_dataframe()
+        result = clean_dataframe(result)
         result['icon'] = result['aspect'].map(ASPECT_ICONS)
         return result.to_dict(orient='records')
     except Exception as e:
@@ -325,6 +332,7 @@ async def get_satisfaction(
     
     try:
         result = c.query(query).to_dataframe()
+        result = clean_dataframe(result)
         result['icon'] = result['aspect'].map(ASPECT_ICONS)
         return result.to_dict(orient='records')
     except Exception as e:
@@ -376,9 +384,9 @@ async def get_demographics(
     
     try:
         return {
-            "persona": c.query(persona_query).to_dataframe().to_dict(orient='records'),
-            "intent": c.query(intent_query).to_dataframe().to_dict(orient='records'),
-            "gender": c.query(gender_query).to_dataframe().to_dict(orient='records')
+            "persona": clean_dataframe(c.query(persona_query).to_dataframe()).to_dict(orient='records'),
+            "intent": clean_dataframe(c.query(intent_query).to_dataframe()).to_dict(orient='records'),
+            "gender": clean_dataframe(c.query(gender_query).to_dataframe()).to_dict(orient='records')
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -430,6 +438,7 @@ async def get_comparison(
     try:
         result = c.query(query).to_dataframe()
         
+        result = clean_dataframe(result)
         comparison = {}
         for item in item_list:
             item_data = result[result['item_name'] == item]
@@ -443,7 +452,7 @@ async def get_comparison(
                 aspects['aspect_name'] = aspects['aspect']
                 
                 comparison[item] = {
-                    "aspects": aspects.to_dict(orient='records'),
+                    "aspects": clean_dataframe(aspects).to_dict(orient='records'),
                     "overall": {
                         "positive": total_pos,
                         "negative": total_neg,
@@ -491,7 +500,7 @@ async def get_features(
     
     try:
         result = c.query(query).to_dataframe()
-        return result.to_dict(orient='records')
+        return clean_dataframe(result).to_dict(orient='records')
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -521,8 +530,10 @@ async def get_stats():
     """
     
     try:
-        stats = c.query(query).to_dataframe().iloc[0].to_dict()
-        reviews = c.query(review_query).to_dataframe().iloc[0].to_dict()
+        stats_df = clean_dataframe(c.query(query).to_dataframe())
+        stats = stats_df.iloc[0].to_dict()
+        reviews_df = clean_dataframe(c.query(review_query).to_dataframe())
+        reviews = reviews_df.iloc[0].to_dict()
         stats.update(reviews)
         return stats
     except Exception as e:
