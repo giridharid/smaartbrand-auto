@@ -1,7 +1,10 @@
 """
-Smaartbrand Auto - FastAPI Backend
-Cars and Bikes Intelligence Platform
-Matching Hotels dashboard structure
+Smaartbrand Auto/Moto - Unified FastAPI Backend
+Single codebase for Cars and Bikes Intelligence Platform
+
+Deploy twice on Railway:
+- auto.smaartbrand.com: VEHICLE_TYPE=car
+- moto.smaartbrand.com: VEHICLE_TYPE=bike
 """
 
 from fastapi import FastAPI, HTTPException
@@ -16,7 +19,19 @@ import traceback
 from pydantic import BaseModel
 from typing import Optional, List
 
-app = FastAPI(title="Smaartbrand Auto API")
+# ─────────────────────────────────────────
+# VEHICLE TYPE FROM ENV VAR
+# ─────────────────────────────────────────
+VEHICLE_TYPE = os.environ.get("VEHICLE_TYPE", "car").lower()
+
+# Validate
+if VEHICLE_TYPE not in ["car", "bike"]:
+    print(f"[WARNING] Invalid VEHICLE_TYPE '{VEHICLE_TYPE}', defaulting to 'car'")
+    VEHICLE_TYPE = "car"
+
+print(f"[CONFIG] Running in {VEHICLE_TYPE.upper()} mode")
+
+app = FastAPI(title=f"Smaartbrand {'Auto' if VEHICLE_TYPE == 'car' else 'Moto'} API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -100,13 +115,30 @@ def get_client():
         init_client()
     return client
 
-def get_vehicle_filter(vehicle_type: str) -> str:
-    """Return SQL filter for vehicle type"""
-    if vehicle_type == "car":
-        return "product_id LIKE 'CAR_%'"
-    elif vehicle_type == "bike":
+def get_vehicle_filter() -> str:
+    """Return SQL filter based on VEHICLE_TYPE env var"""
+    if VEHICLE_TYPE == "bike":
         return "product_id LIKE 'BIKE_%'"
-    return "1=1"
+    return "product_id LIKE 'CAR_%'"
+
+def get_aspects() -> list:
+    """Return aspect list based on VEHICLE_TYPE"""
+    return BIKE_ASPECTS if VEHICLE_TYPE == "bike" else CAR_ASPECTS
+
+# ─────────────────────────────────────────
+# CONFIG ENDPOINT - Frontend fetches this on load
+# ─────────────────────────────────────────
+@app.get("/api/config")
+async def get_config():
+    """Return app configuration based on VEHICLE_TYPE env var"""
+    return {
+        "vehicle_type": VEHICLE_TYPE,
+        "title": "Smaartbrand Moto" if VEHICLE_TYPE == "bike" else "Smaartbrand Auto",
+        "subtitle": "Bikes Intelligence" if VEHICLE_TYPE == "bike" else "Auto Intelligence",
+        "icon": "🏍️" if VEHICLE_TYPE == "bike" else "🚗",
+        "aspects": get_aspects(),
+        "aspect_icons": ASPECT_ICONS
+    }
 
 # ─────────────────────────────────────────
 # API ENDPOINTS
@@ -118,23 +150,24 @@ async def root():
         with open("index.html", "r") as f:
             return HTMLResponse(content=f.read())
     except Exception as e:
-        return HTMLResponse(content=f"<h1>Smaartbrand Auto API</h1><p>Use /docs for API documentation</p>")
+        return HTMLResponse(content=f"<h1>Smaartbrand API</h1><p>Use /docs for API documentation</p>")
 
 @app.get("/health")
 async def health():
     c = get_client()
     return {
         "status": "healthy" if c else "degraded",
-        "database": "connected" if c else "disconnected"
+        "database": "connected" if c else "disconnected",
+        "vehicle_type": VEHICLE_TYPE
     }
 
 @app.get("/api/brands")
-async def get_brands(vehicle_type: str = "car"):
+async def get_brands():
     c = get_client()
     if not c:
         raise HTTPException(status_code=500, detail="Database connection failed")
     
-    vehicle_filter = get_vehicle_filter(vehicle_type)
+    vehicle_filter = get_vehicle_filter()
     
     query = f"""
     SELECT DISTINCT brand
@@ -150,12 +183,12 @@ async def get_brands(vehicle_type: str = "car"):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/models")
-async def get_models(brand: Optional[str] = None, vehicle_type: str = "car"):
+async def get_models(brand: Optional[str] = None):
     c = get_client()
     if not c:
         raise HTTPException(status_code=500, detail="Database connection failed")
     
-    vehicle_filter = get_vehicle_filter(vehicle_type)
+    vehicle_filter = get_vehicle_filter()
     where_clauses = [vehicle_filter, "model IS NOT NULL"]
     
     if brand:
@@ -175,17 +208,17 @@ async def get_models(brand: Optional[str] = None, vehicle_type: str = "car"):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/segments")
-async def get_segments(vehicle_type: str = "car"):
+async def get_segments():
     c = get_client()
     if not c:
         raise HTTPException(status_code=500, detail="Database connection failed")
     
-    vehicle_filter = "vehicle_type = 'car'" if vehicle_type == "car" else "vehicle_type = 'bike'"
+    vt = "bike" if VEHICLE_TYPE == "bike" else "car"
     
     query = f"""
     SELECT DISTINCT segment
     FROM `{PROJECT}.{DATASET}.product_master`
-    WHERE {vehicle_filter} AND segment IS NOT NULL
+    WHERE vehicle_type = '{vt}' AND segment IS NOT NULL
     ORDER BY segment
     """
     
@@ -199,8 +232,7 @@ async def get_segments(vehicle_type: str = "car"):
 async def get_drivers(
     brand: Optional[str] = None,
     model: Optional[str] = None,
-    persona: Optional[str] = None,
-    vehicle_type: str = "car"
+    persona: Optional[str] = None
 ):
     """Get share of voice and satisfaction by aspect"""
     c = get_client()
@@ -210,7 +242,7 @@ async def get_drivers(
     if not brand and not model:
         raise HTTPException(status_code=400, detail="Either brand or model required")
     
-    vehicle_filter = get_vehicle_filter(vehicle_type)
+    vehicle_filter = get_vehicle_filter()
     where_clauses = [vehicle_filter]
     
     if model:
@@ -257,10 +289,9 @@ async def get_drivers(
 async def get_satisfaction(
     brand: Optional[str] = None,
     model: Optional[str] = None,
-    persona: Optional[str] = None,
-    vehicle_type: str = "car"
+    persona: Optional[str] = None
 ):
-    """Get satisfaction scores by aspect"""
+    """Get satisfaction by aspect"""
     c = get_client()
     if not c:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -268,7 +299,7 @@ async def get_satisfaction(
     if not brand and not model:
         raise HTTPException(status_code=400, detail="Either brand or model required")
     
-    vehicle_filter = get_vehicle_filter(vehicle_type)
+    vehicle_filter = get_vehicle_filter()
     where_clauses = [vehicle_filter]
     
     if model:
@@ -302,8 +333,7 @@ async def get_satisfaction(
 @app.get("/api/demographics")
 async def get_demographics(
     brand: Optional[str] = None,
-    model: Optional[str] = None,
-    vehicle_type: str = "car"
+    model: Optional[str] = None
 ):
     """Get persona and intent breakdown"""
     c = get_client()
@@ -313,7 +343,7 @@ async def get_demographics(
     if not brand and not model:
         raise HTTPException(status_code=400, detail="Either brand or model required")
     
-    vehicle_filter = get_vehicle_filter(vehicle_type)
+    vehicle_filter = get_vehicle_filter()
     where_clauses = [vehicle_filter]
     
     if model:
@@ -358,8 +388,7 @@ async def get_comparison(
     items: str,
     compare_by: str = "brand",
     persona: Optional[str] = None,
-    gender: Optional[str] = None,
-    vehicle_type: str = "car"
+    gender: Optional[str] = None
 ):
     """
     Compare multiple brands or models - matching hotels structure exactly
@@ -374,7 +403,7 @@ async def get_comparison(
         raise HTTPException(status_code=400, detail="At least 2 items required")
     
     items_sql = "', '".join([i.replace("'", "''") for i in item_list])
-    vehicle_filter = get_vehicle_filter(vehicle_type)
+    vehicle_filter = get_vehicle_filter()
     name_field = "model" if compare_by == "model" else "brand"
     
     extra_where = ""
@@ -436,7 +465,6 @@ async def get_comparison(
 async def get_features(
     brand: Optional[str] = None,
     model: Optional[str] = None,
-    vehicle_type: str = "car",
     limit: int = 20
 ):
     """Get top features sought"""
@@ -444,7 +472,7 @@ async def get_features(
     if not c:
         raise HTTPException(status_code=500, detail="Database connection failed")
     
-    vehicle_filter = get_vehicle_filter(vehicle_type)
+    vehicle_filter = get_vehicle_filter()
     where_clauses = [vehicle_filter, "features_sought IS NOT NULL", "features_sought != ''"]
     
     if model:
@@ -468,13 +496,13 @@ async def get_features(
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/stats")
-async def get_stats(vehicle_type: str = "car"):
+async def get_stats():
     """Get overall dataset stats"""
     c = get_client()
     if not c:
         raise HTTPException(status_code=500, detail="Database connection failed")
     
-    vehicle_filter = get_vehicle_filter(vehicle_type)
+    vehicle_filter = get_vehicle_filter()
     
     query = f"""
     SELECT 

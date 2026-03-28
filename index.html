@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smaartbrand Auto | Decision Intelligence</title>
+    <title>Smaartbrand | Decision Intelligence</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23667eea'/%3E%3Cpath d='M25 55 L40 45 L50 50 L75 35' stroke='white' stroke-width='4' fill='none'/%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
@@ -122,11 +122,11 @@
         <div class="max-w-7xl mx-auto flex items-center justify-between gap-2 flex-wrap">
             <div class="flex items-center gap-2 flex-shrink-0">
                 <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
-                    <span class="text-lg">🚗</span>
+                    <span id="appIcon" class="text-lg">🚗</span>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold gradient-text">Smaartbrand</h1>
-                    <p class="text-xs text-gray-400 hidden sm:block">Auto Intelligence</p>
+                    <h1 id="appTitle" class="text-lg font-bold gradient-text">Smaartbrand</h1>
+                    <p id="appSubtitle" class="text-xs text-gray-400 hidden sm:block">Intelligence</p>
                 </div>
             </div>
             
@@ -156,28 +156,21 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-6 py-6">
-        <!-- Selection Context Header -->
-        <div id="contextHeader" class="glass rounded-2xl p-4 mb-6">
-            <div class="flex items-start justify-between">
-                <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-2">
-                        <span id="contextIcon" class="text-2xl">🚗</span>
-                        <div>
-                            <h2 id="contextTitle" class="text-xl font-bold gradient-text">Loading...</h2>
-                            <p id="contextSubtitle" class="text-sm text-gray-400">Select a brand or model to view insights</p>
-                        </div>
+        <!-- Context Header -->
+        <div class="glass rounded-2xl p-4 mb-6 flex items-center justify-between">
+            <div>
+                <h2 id="contextTitle" class="text-xl font-bold gradient-text">Loading...</h2>
+                <p id="contextSubtitle" class="text-sm text-gray-400">Select a brand to view insights</p>
+            </div>
+            <div id="contextMeta" class="text-right hidden">
+                <div class="flex items-center gap-6">
+                    <div>
+                        <span class="text-xs text-gray-500">Satisfaction</span>
+                        <div id="contextSatisfaction" class="text-xl font-bold text-green-400">--%</div>
                     </div>
-                </div>
-                <div id="contextMeta" class="text-right hidden">
-                    <div class="flex items-center gap-4">
-                        <div>
-                            <span class="text-xs text-gray-500">Satisfaction</span>
-                            <div id="contextSatisfaction" class="text-lg font-bold text-green-400">--</div>
-                        </div>
-                        <div>
-                            <span class="text-xs text-gray-500">Mentions</span>
-                            <div id="contextMentions" class="text-lg font-bold text-purple-400">--</div>
-                        </div>
+                    <div>
+                        <span class="text-xs text-gray-500">Mentions</span>
+                        <div id="contextMentions" class="text-xl font-bold text-purple-400">--</div>
                     </div>
                 </div>
             </div>
@@ -188,10 +181,10 @@
             <div class="stat-card glass rounded-2xl p-4">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-gray-400 text-xs">Overall Satisfaction</span>
-                    <span class="text-xl">📈</span>
+                    <span class="text-xl">📊</span>
                 </div>
-                <div class="text-2xl font-bold gradient-text" id="statOverall">--</div>
-                <div class="text-xs text-gray-500 mt-1" id="statMentions">Based on mentions</div>
+                <div id="statOverall" class="text-2xl font-bold gradient-text">--%</div>
+                <div id="statMentions" class="text-xs text-gray-500">Based on mentions</div>
             </div>
             
             <div class="stat-card glass rounded-2xl p-4">
@@ -199,17 +192,17 @@
                     <span class="text-gray-400 text-xs">Top Strength</span>
                     <span class="text-xl">💪</span>
                 </div>
-                <div class="text-lg font-bold text-green-400" id="statStrength">--</div>
-                <div class="text-xs text-gray-500 mt-1" id="statStrengthScore">--</div>
+                <div id="statStrength" class="text-lg font-bold text-green-400">--</div>
+                <div id="statStrengthScore" class="text-xs text-gray-500">--</div>
             </div>
             
             <div class="stat-card glass rounded-2xl p-4">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-gray-400 text-xs">Top Weakness</span>
+                    <span class="text-gray-400 text-xs">Needs Improvement</span>
                     <span class="text-xl">🔧</span>
                 </div>
-                <div class="text-lg font-bold text-amber-400" id="statWeakness">--</div>
-                <div class="text-xs text-gray-500 mt-1" id="statWeaknessScore">--</div>
+                <div id="statWeakness" class="text-lg font-bold text-amber-400">--</div>
+                <div id="statWeaknessScore" class="text-xs text-gray-500">--</div>
             </div>
             
             <div class="stat-card glass rounded-2xl p-4">
@@ -217,13 +210,13 @@
                     <span class="text-gray-400 text-xs">Top Buyer Type</span>
                     <span class="text-xl">👥</span>
                 </div>
-                <div class="text-lg font-bold text-purple-400" id="statBuyerType">--</div>
-                <div class="text-xs text-gray-500 mt-1" id="statBuyerPct">--</div>
+                <div id="statBuyerType" class="text-lg font-bold text-purple-400">--</div>
+                <div id="statBuyerPct" class="text-xs text-gray-500">--</div>
             </div>
         </div>
 
         <!-- Tabs -->
-        <div class="flex gap-2 mb-6">
+        <div class="flex gap-2 mb-6 flex-wrap">
             <button class="tab-btn active px-4 py-2 rounded-lg text-sm font-medium transition" onclick="showTab('drivers')">📊 Drivers</button>
             <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition" onclick="showTab('satisfaction')">📈 Satisfaction</button>
             <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition" onclick="showTab('comparison')">⚖️ Compare</button>
@@ -249,15 +242,14 @@
             <!-- Satisfaction Tab -->
             <div id="satisfactionTab" class="tab-panel hidden">
                 <div class="glass rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold mb-4">Satisfaction by Aspect</h3>
+                    <h3 class="text-lg font-semibold mb-4">Sentiment Breakdown by Aspect</h3>
                     <div id="satisfactionChart" style="height: 400px;"></div>
                 </div>
             </div>
             
-            <!-- Comparison Tab - Matching Hotels Style Exactly -->
+            <!-- Comparison Tab - Matching Hotels -->
             <div id="comparisonTab" class="tab-panel hidden">
                 <div class="glass rounded-2xl p-6">
-                    <!-- Compare Mode Toggle -->
                     <div class="flex items-center justify-between mb-6">
                         <h3 class="text-lg font-semibold">Compare</h3>
                         <div class="glass-dark rounded-lg p-1 flex">
@@ -288,7 +280,7 @@
                         </div>
                     </div>
                     
-                    <!-- Model Compare Selectors (hidden by default) -->
+                    <!-- Model Compare Selectors -->
                     <div id="modelCompareSelectors" class="grid grid-cols-3 gap-4 mb-6 hidden">
                         <div class="glass-dark rounded-xl p-4">
                             <label class="text-xs text-gray-400 mb-2 block">Model 1</label>
@@ -322,6 +314,11 @@
                     <div class="flex items-center justify-between mb-6">
                         <div class="flex gap-3">
                             <span class="text-gray-400 text-sm">Filter by:</span>
+                            <select id="compareGender" class="glass-dark px-3 py-1.5 rounded text-xs">
+                                <option value="">All Genders</option>
+                                <option value="M">Male</option>
+                                <option value="F">Female</option>
+                            </select>
                             <select id="comparePersona" class="glass-dark px-3 py-1.5 rounded text-xs">
                                 <option value="">All Personas</option>
                                 <option value="value_seeker">Value Seeker</option>
@@ -330,17 +327,12 @@
                                 <option value="commuter">Commuter</option>
                                 <option value="first_buyer">First Buyer</option>
                             </select>
-                            <select id="compareGender" class="glass-dark px-3 py-1.5 rounded text-xs">
-                                <option value="">All Genders</option>
-                                <option value="M">Male</option>
-                                <option value="F">Female</option>
-                            </select>
                         </div>
                         <button id="runCompareBtn" class="bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">Compare</button>
                     </div>
                     
                     <div id="comparisonContent">
-                        <p class="text-gray-500 text-center py-12">Select items to compare</p>
+                        <p class="text-gray-500 text-center py-12">Select brands or models to compare</p>
                     </div>
                 </div>
             </div>
@@ -365,9 +357,9 @@
         </div>
     </main>
 
-    <!-- Chat Panel - WIDER WITH COLLAPSE - Matching Hotels -->
+    <!-- Chat Panel - Matching Hotels -->
     <div id="chatPanel" class="chat-panel fixed right-0 top-0 h-full w-[50vw] min-w-[500px] max-w-[800px] glass-dark z-50 flex flex-col">
-        <!-- Collapsed Bar (hidden by default) -->
+        <!-- Collapsed Bar -->
         <div class="chat-collapsed-bar hidden flex-col items-center justify-center h-full py-4 cursor-pointer" onclick="expandChat()">
             <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-3">
                 <span>🤖</span>
@@ -385,7 +377,7 @@
                     </div>
                     <div>
                         <h3 class="font-semibold">SmaartAnalyst</h3>
-                        <p class="text-xs text-gray-400" id="chatContextLabel">Auto Intelligence AI</p>
+                        <p id="chatContextLabel" class="text-xs text-gray-400">Intelligence AI</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -431,6 +423,7 @@
         // ═══════════════════════════════════════════
         // STATE
         // ═══════════════════════════════════════════
+        let config = {};  // Loaded from /api/config
         let currentBrand = null;
         let currentModel = null;
         let viewMode = 'brand';
@@ -438,8 +431,6 @@
         let models = [];
         let charts = {};
         let compareMode = 'brand';
-        
-        const VEHICLE_TYPE = 'car';
         
         const ASPECT_ICONS = {
             'Performance': '🏎️', 'Comfort': '🛋️', 'Safety': '🛡️', 'Features': '⚙️',
@@ -456,16 +447,37 @@
         const itemColors = ['#f59e0b', '#8b5cf6', '#10b981', '#3b82f6'];
         
         // ═══════════════════════════════════════════
-        // INITIALIZATION
+        // INITIALIZATION - Load config first
         // ═══════════════════════════════════════════
         document.addEventListener('DOMContentLoaded', async () => {
+            await loadConfig();
             await loadBrands();
             setupEventListeners();
         });
         
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/config');
+                config = await res.json();
+                
+                // Update UI with config
+                document.title = config.title + ' | Decision Intelligence';
+                document.getElementById('appIcon').textContent = config.icon;
+                document.getElementById('appTitle').textContent = config.title;
+                document.getElementById('appSubtitle').textContent = config.subtitle;
+                document.getElementById('chatContextLabel').textContent = config.subtitle + ' AI';
+                
+                console.log(`[CONFIG] Running in ${config.vehicle_type.toUpperCase()} mode`);
+            } catch (e) {
+                console.error('Failed to load config:', e);
+                // Fallback defaults
+                config = { vehicle_type: 'car', title: 'Smaartbrand Auto', subtitle: 'Auto Intelligence', icon: '🚗' };
+            }
+        }
+        
         async function loadBrands() {
             try {
-                const res = await fetch(`/api/brands?vehicle_type=${VEHICLE_TYPE}`);
+                const res = await fetch('/api/brands');
                 brands = await res.json();
                 
                 const selects = ['brandSelect', 'compareBrand1', 'compareBrand2', 'compareBrand3', 
@@ -492,7 +504,7 @@
         
         async function loadModels(brand) {
             try {
-                const res = await fetch(`/api/models?brand=${encodeURIComponent(brand)}&vehicle_type=${VEHICLE_TYPE}`);
+                const res = await fetch(`/api/models?brand=${encodeURIComponent(brand)}`);
                 models = await res.json();
                 
                 const select = document.getElementById('modelSelect');
@@ -560,7 +572,7 @@
                     const brand = e.target.value;
                     const modelSelectId = `compareModel${idx + 1}`;
                     if (brand) {
-                        const res = await fetch(`/api/models?brand=${encodeURIComponent(brand)}&vehicle_type=${VEHICLE_TYPE}`);
+                        const res = await fetch(`/api/models?brand=${encodeURIComponent(brand)}`);
                         const brandModels = await res.json();
                         document.getElementById(modelSelectId).innerHTML = '<option value="">Select Model</option>' + 
                             brandModels.map(m => `<option value="${m.model}">${m.model}</option>`).join('');
@@ -582,7 +594,6 @@
                 btn.addEventListener('click', () => {
                     const q = btn.dataset.question;
                     document.getElementById('chatInput').value = q;
-                    // Simulate sending
                 });
             });
         }
@@ -604,7 +615,8 @@
         
         function updateContextHeader() {
             const title = currentModel || currentBrand;
-            const subtitle = currentModel ? `${currentBrand} • Car` : 'Brand Overview';
+            const vehicleLabel = config.vehicle_type === 'bike' ? 'Bike' : 'Car';
+            const subtitle = currentModel ? `${currentBrand} • ${vehicleLabel}` : 'Brand Overview';
             
             document.getElementById('contextTitle').textContent = title;
             document.getElementById('contextSubtitle').textContent = subtitle;
@@ -612,10 +624,9 @@
         
         async function loadDrivers() {
             try {
-                const params = new URLSearchParams({
-                    vehicle_type: VEHICLE_TYPE,
-                    ...(currentModel ? { model: currentModel } : { brand: currentBrand })
-                });
+                const params = new URLSearchParams(
+                    currentModel ? { model: currentModel } : { brand: currentBrand }
+                );
                 
                 const res = await fetch(`/api/drivers?${params}`);
                 const data = await res.json();
@@ -640,9 +651,7 @@
                     document.getElementById('statWeakness').textContent = (ASPECT_ICONS[weakness.aspect] || '') + ' ' + weakness.aspect;
                     document.getElementById('statWeaknessScore').textContent = weakness.satisfaction + '% satisfaction';
                     
-                    // Render SOV chart
                     renderSOVChart(data);
-                    // Render radar chart
                     renderRadarChart(data);
                 }
             } catch (e) {
@@ -652,10 +661,9 @@
         
         async function loadSatisfaction() {
             try {
-                const params = new URLSearchParams({
-                    vehicle_type: VEHICLE_TYPE,
-                    ...(currentModel ? { model: currentModel } : { brand: currentBrand })
-                });
+                const params = new URLSearchParams(
+                    currentModel ? { model: currentModel } : { brand: currentBrand }
+                );
                 
                 const res = await fetch(`/api/satisfaction?${params}`);
                 const data = await res.json();
@@ -668,10 +676,9 @@
         
         async function loadDemographics() {
             try {
-                const params = new URLSearchParams({
-                    vehicle_type: VEHICLE_TYPE,
-                    ...(currentModel ? { model: currentModel } : { brand: currentBrand })
-                });
+                const params = new URLSearchParams(
+                    currentModel ? { model: currentModel } : { brand: currentBrand }
+                );
                 
                 const res = await fetch(`/api/demographics?${params}`);
                 const data = await res.json();
@@ -724,7 +731,6 @@
                 const params = new URLSearchParams({
                     items: items.join(','),
                     compare_by: compareMode,
-                    vehicle_type: VEHICLE_TYPE,
                     ...(persona ? { persona } : {}),
                     ...(gender ? { gender } : {})
                 });
