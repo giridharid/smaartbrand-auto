@@ -284,6 +284,22 @@
         </div>
     </footer>
 
+    <!-- Reviews Modal -->
+    <div id="reviewsModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
+        <div class="glass rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+            <div class="p-4 border-b border-white/10 flex items-center justify-between">
+                <div>
+                    <h3 id="reviewsModalTitle" class="font-semibold">Sample Reviews</h3>
+                    <p id="reviewsModalSubtitle" class="text-xs text-gray-400"></p>
+                </div>
+                <button onclick="closeReviewsModal()" class="p-2 hover:bg-white/10 rounded-lg">✕</button>
+            </div>
+            <div id="reviewsModalContent" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <div class="text-center py-8 text-gray-400">Loading reviews...</div>
+            </div>
+        </div>
+    </div>
+
     <!-- Chat Panel -->
     <div id="chatOverlay" class="fixed inset-0 bg-black/50 z-40 hidden"></div>
     <div id="chatPanel" class="chat-panel fixed top-0 right-0 h-full w-full md:w-96 glass z-50 flex flex-col">
@@ -566,12 +582,12 @@
                     
                     const praises = withRatio.filter(d => d.positiveRatio > 0.5).sort((a, b) => b.positive_count - a.positive_count).slice(0, 5);
                     document.getElementById('praisesContainer').innerHTML = praises.length > 0 
-                        ? praises.map(d => `<div class="flex items-center justify-between p-3 rounded-lg bg-green-500/10 border border-green-500/20"><div class="flex items-center gap-2"><span>${ASPECT_ICONS[d.aspect] || '📊'}</span><span class="text-sm">${d.aspect}</span></div><span class="text-green-400 font-semibold">${formatNumber(d.positive_count)}</span></div>`).join('')
+                        ? praises.map(d => `<div class="flex items-center justify-between p-3 rounded-lg bg-green-500/10 border border-green-500/20"><div class="flex items-center gap-2"><span>${ASPECT_ICONS[d.aspect] || '📊'}</span><span class="text-sm">${d.aspect}</span></div><span class="text-green-400 font-semibold cursor-pointer hover:underline" onclick="showSampleReviews('${d.aspect}', 'positive')">${formatNumber(d.positive_count)}</span></div>`).join('')
                         : '<p class="text-sm text-gray-500 text-center py-4">No data</p>';
                     
                     const concerns = withRatio.filter(d => d.positiveRatio <= 0.5).sort((a, b) => b.negative_count - a.negative_count).slice(0, 5);
                     document.getElementById('concernsContainer').innerHTML = concerns.length > 0
-                        ? concerns.map(d => `<div class="flex items-center justify-between p-3 rounded-lg bg-red-500/10 border border-red-500/20"><div class="flex items-center gap-2"><span>${ASPECT_ICONS[d.aspect] || '📊'}</span><span class="text-sm">${d.aspect}</span></div><span class="text-red-400 font-semibold">${formatNumber(d.negative_count)}</span></div>`).join('')
+                        ? concerns.map(d => `<div class="flex items-center justify-between p-3 rounded-lg bg-red-500/10 border border-red-500/20"><div class="flex items-center gap-2"><span>${ASPECT_ICONS[d.aspect] || '📊'}</span><span class="text-sm">${d.aspect}</span></div><span class="text-red-400 font-semibold cursor-pointer hover:underline" onclick="showSampleReviews('${d.aspect}', 'negative')">${formatNumber(d.negative_count)}</span></div>`).join('')
                         : '<p class="text-sm text-gray-500 text-center py-4">No concerns</p>';
                     
                     renderSOVChart(data);
@@ -605,7 +621,7 @@
                 if (data.length > 0) {
                     let html = '<table class="data-table"><thead><tr><th>Aspect</th><th>Positive</th><th>Negative</th><th>Total</th></tr></thead><tbody>';
                     data.forEach(d => {
-                        html += `<tr><td class="text-gray-300">${ASPECT_ICONS[d.aspect] || ''} ${d.aspect}</td><td class="text-green-400">${formatNumber(d.positive_count)}</td><td class="text-red-400">${formatNumber(d.negative_count)}</td><td>${formatNumber(d.total_mentions)}</td></tr>`;
+                        html += `<tr><td class="text-gray-300">${ASPECT_ICONS[d.aspect] || ''} ${d.aspect}</td><td class="text-green-400 cursor-pointer hover:underline" onclick="showSampleReviews('${d.aspect}', 'positive')">${formatNumber(d.positive_count)}</td><td class="text-red-400 cursor-pointer hover:underline" onclick="showSampleReviews('${d.aspect}', 'negative')">${formatNumber(d.negative_count)}</td><td>${formatNumber(d.total_mentions)}</td></tr>`;
                     });
                     html += '</tbody></table>';
                     document.getElementById('satisfactionTable').innerHTML = html;
@@ -624,12 +640,23 @@
                     document.getElementById('statBuyerType').textContent = topPersona.persona || 'N/A';
                     document.getElementById('statBuyerPct').textContent = topPersona.percentage ? topPersona.percentage + '%' : '';
                     
+                    // Filter personas with > 10 mentions, group rest as "Others"
+                    const MIN_MENTIONS = 10;
+                    const significant = data.persona.filter(p => p.count > MIN_MENTIONS);
+                    const others = data.persona.filter(p => p.count <= MIN_MENTIONS);
+                    const othersCount = others.reduce((sum, p) => sum + p.count, 0);
+                    
+                    let chartData = significant;
+                    if (othersCount > 0) {
+                        chartData = [...significant, { persona: 'Others', count: othersCount }];
+                    }
+                    
                     if (charts.persona) charts.persona.destroy();
                     charts.persona = new ApexCharts(document.getElementById('personaChart'), {
-                        series: data.persona.map(p => p.count),
-                        labels: data.persona.map(p => p.persona),
+                        series: chartData.map(p => p.count),
+                        labels: chartData.map(p => p.persona),
                         chart: { type: 'donut', height: 300, background: 'transparent' },
-                        colors: ['#667eea', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'],
+                        colors: ['#667eea', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#6b7280'],
                         theme: { mode: 'dark' },
                         legend: { position: 'bottom', labels: { colors: '#94a3b8' } }
                     });
@@ -657,18 +684,64 @@
                 const res = await fetch(`/api/rd-insights?${params}`);
                 const data = await res.json();
                 
-                if (data.feature_requests) {
-                    document.getElementById('featureRequestsContainer').innerHTML = data.feature_requests.length > 0
-                        ? data.feature_requests.map(f => `<div class="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20"><div class="text-sm">${f.text}</div><div class="text-xs text-gray-500 mt-1">${f.count || ''} mentions</div></div>`).join('')
-                        : '<p class="text-gray-500 text-center py-4">No feature requests found</p>';
-                }
+                // API returns { categorized: { feature_requests: [...], pain_points: [...] } }
+                const featureRequests = data.categorized?.feature_requests || [];
+                const painPoints = data.categorized?.pain_points || [];
                 
-                if (data.pain_points) {
-                    document.getElementById('painPointsContainer').innerHTML = data.pain_points.length > 0
-                        ? data.pain_points.map(p => `<div class="p-3 rounded-lg bg-red-500/10 border border-red-500/20"><div class="text-sm">${p.text}</div><div class="text-xs text-gray-500 mt-1">${p.count || ''} mentions</div></div>`).join('')
-                        : '<p class="text-gray-500 text-center py-4">No pain points found</p>';
-                }
+                document.getElementById('featureRequestsContainer').innerHTML = featureRequests.length > 0
+                    ? featureRequests.map(f => `<div class="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20"><div class="text-sm">${f.feature}</div><div class="text-xs text-gray-500 mt-1">${f.mentions} mentions</div></div>`).join('')
+                    : '<p class="text-gray-500 text-center py-4">No feature requests found</p>';
+                
+                document.getElementById('painPointsContainer').innerHTML = painPoints.length > 0
+                    ? painPoints.map(p => `<div class="p-3 rounded-lg bg-red-500/10 border border-red-500/20"><div class="text-sm">${p.feature}</div><div class="text-xs text-gray-500 mt-1">${p.mentions} mentions</div></div>`).join('')
+                    : '<p class="text-gray-500 text-center py-4">No pain points found</p>';
             } catch (e) { console.error('R&D error:', e); }
+        }
+
+        // ═══════════════════════════════════════════
+        // SAMPLE REVIEWS MODAL
+        // ═══════════════════════════════════════════
+        async function showSampleReviews(aspect, sentiment) {
+            document.getElementById('reviewsModal').classList.remove('hidden');
+            document.getElementById('reviewsModalTitle').textContent = `${aspect} Reviews`;
+            document.getElementById('reviewsModalSubtitle').textContent = `${sentiment === 'positive' ? '👍 Positive' : '👎 Negative'} mentions for ${currentModel || currentBrand}`;
+            document.getElementById('reviewsModalContent').innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500"></div><p class="text-gray-400 mt-2">Loading reviews...</p></div>';
+            
+            try {
+                const params = new URLSearchParams({
+                    aspect: aspect,
+                    sentiment: sentiment,
+                    limit: 5
+                });
+                if (currentModel) params.append('model', currentModel);
+                else params.append('brand', currentBrand);
+                
+                const res = await fetch(`/api/sample-reviews?${params}`);
+                const data = await res.json();
+                
+                if (data.reviews && data.reviews.length > 0) {
+                    document.getElementById('reviewsModalContent').innerHTML = data.reviews.map(r => `
+                        <div class="p-4 rounded-lg ${r.sentiment === 'positive' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}">
+                            <p class="text-sm text-gray-200 leading-relaxed">"${r.text}"</p>
+                            <div class="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                                <span>${r.sentiment === 'positive' ? '👍' : '👎'} ${r.sentiment}</span>
+                                ${r.model ? `<span>🚗 ${r.model}</span>` : ''}
+                                ${r.subreddit ? `<span>📍 r/${r.subreddit}</span>` : ''}
+                                ${r.date ? `<span>📅 ${r.date}</span>` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    document.getElementById('reviewsModalContent').innerHTML = '<p class="text-center py-8 text-gray-500">No reviews found for this aspect.</p>';
+                }
+            } catch (e) {
+                console.error('Reviews error:', e);
+                document.getElementById('reviewsModalContent').innerHTML = '<p class="text-center py-8 text-red-400">Error loading reviews.</p>';
+            }
+        }
+        
+        function closeReviewsModal() {
+            document.getElementById('reviewsModal').classList.add('hidden');
         }
 
         // ═══════════════════════════════════════════
