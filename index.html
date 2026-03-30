@@ -11,15 +11,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { font-family: 'Inter', sans-serif; }
-        body { background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d0d1f 100%); min-height: 100vh; }
+        body { background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d0d1f 100%); }
         .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .glass-dark { background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
         .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .chat-panel { transform: translateX(100%); transition: transform 0.3s ease-in-out, width 0.3s ease-in-out; }
+        .chat-panel { transform: translateX(100%); transition: transform 0.3s ease-in-out; }
         .chat-panel.open { transform: translateX(0); }
-        .chat-panel.collapsed { width: 60px !important; min-width: 60px !important; }
-        .chat-panel.collapsed .chat-content { display: none; }
-        .chat-panel.collapsed .chat-collapsed-bar { display: flex !important; }
         .stat-card { transition: all 0.3s ease; }
         .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(102, 126, 234, 0.2); }
         .tab-btn.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
@@ -27,96 +24,27 @@
         .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
         .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
         @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-        .message-content { line-height: 1.6; }
-        .message-content h3 { font-size: 1rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.5rem; color: #c4b5fd; }
-        .message-content h4 { font-size: 0.9rem; font-weight: 600; margin-top: 0.75rem; color: #a78bfa; }
-        .message-content ul { margin-left: 0.5rem; margin-bottom: 0.5rem; list-style: none; }
-        .message-content li { margin-bottom: 0.25rem; }
-        .message-content hr { border-color: rgba(255,255,255,0.1); margin: 1rem 0; }
-        .message-content strong { color: #e9d5ff; }
-        .message-content p { margin-bottom: 0.5rem; }
-        
-        /* Data tables - matching hotels/smartphones style */
-        .data-table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+        .data-table { width: 100%; border-collapse: separate; border-spacing: 0; }
         .data-table th { text-align: left; padding: 12px 16px; font-weight: 500; color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid rgba(255,255,255,0.08); }
         .data-table td { padding: 10px 16px; font-size: 13px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.04); }
-        .data-table td:first-child { text-align: left; width: 180px; }
-        .data-table tbody tr:hover { background: rgba(255,255,255,0.02); }
-        
-        /* Comparison table column headers */
-        .data-table th.item-col { 
-            text-align: center; 
-            vertical-align: bottom;
-            padding: 10px 8px;
-            height: 60px;
-            text-transform: none;
-            letter-spacing: normal;
-        }
-        .item-header {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-end;
-            height: 100%;
-            gap: 4px;
-        }
-        .item-header .dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-        .item-header .name {
-            font-weight: 600;
-            color: #e2e8f0;
-            text-align: center;
-            line-height: 1.2;
-            max-width: 100%;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            word-break: break-word;
-        }
-        .item-header .name.short { font-size: 13px; }
-        .item-header .name.medium { font-size: 11px; }
-        .item-header .name.long { font-size: 10px; }
-        
-        /* Heatmap cells - exactly matching hotels */
-        .heat-cell { 
-            display: inline-block;
-            min-width: 50px;
-            padding: 6px 12px; 
-            border-radius: 4px; 
-            font-weight: 500; 
-            font-size: 13px; 
-            text-align: center;
-        }
-        .heat-vhigh { background: rgba(100, 200, 180, 0.4); color: #fff; }
-        .heat-high { background: rgba(100, 200, 180, 0.3); color: #5eead4; }
-        .heat-med { background: rgba(255, 180, 100, 0.3); color: #fcd34d; }
-        .heat-low { background: rgba(255, 99, 99, 0.3); color: #fca5a5; }
-        .heat-vlow { background: rgba(255, 99, 99, 0.35); color: #f87171; }
-        .heat-neutral { background: rgba(255, 255, 255, 0.05); color: #94a3b8; }
-        
-        .winner-cell { background: rgba(102, 126, 234, 0.35); color: #a5b4fc; font-weight: 600; }
-        
-        /* Attribute wins cards */
-        .wins-column { background: rgba(255,255,255,0.02); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.05); }
-        .wins-column h4 { font-size: 14px; font-weight: 600; color: #a78bfa; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .win-item { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.03); }
-        .win-item:last-child { border-bottom: none; }
-        .win-item .aspect { color: #e2e8f0; }
-        .win-item .score { color: #94a3b8; }
-        
-        /* Color legend - matching hotels */
-        .legend { display: flex; gap: 4px; align-items: center; font-size: 11px; color: #64748b; }
-        .legend-item { display: flex; align-items: center; gap: 2px; }
-        .legend-box { width: 20px; height: 12px; border-radius: 2px; }
-        .legend-text { margin-left: 4px; }
+        .data-table td:first-child { text-align: left; }
+        .heat-vhigh { background: rgba(34, 197, 94, 0.3); }
+        .heat-high { background: rgba(74, 222, 128, 0.2); }
+        .heat-med { background: rgba(250, 204, 21, 0.2); }
+        .heat-low { background: rgba(251, 146, 60, 0.2); }
+        .heat-vlow { background: rgba(239, 68, 68, 0.2); }
+        .heat-neutral { background: rgba(148, 163, 184, 0.1); }
+        .heat-cell { padding: 4px 12px; border-radius: 6px; font-weight: 500; }
+        .winner-cell { background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); }
+        .item-header { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .item-header .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .item-header .name { font-weight: 600; color: #e2e8f0; text-align: center; line-height: 1.2; }
+        .wins-column { background: rgba(255,255,255,0.02); border-radius: 12px; padding: 16px; }
+        .wins-column h4 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #e2e8f0; }
+        .win-item { padding: 6px 10px; background: rgba(168, 85, 247, 0.1); border-radius: 6px; margin-bottom: 6px; font-size: 12px; }
     </style>
 </head>
-<body class="text-white overflow-x-hidden min-h-screen flex flex-col">
+<body class="text-white flex flex-col min-h-screen">
     <!-- Header -->
     <header class="glass sticky top-0 z-40 px-4 py-3">
         <div class="max-w-7xl mx-auto flex items-center justify-between">
@@ -124,539 +52,333 @@
                 <img src="/acquink_logo.png" alt="Acquink" class="h-8" onerror="this.style.display='none'">
                 <div>
                     <h1 id="appTitle" class="text-lg font-bold gradient-text">Smaartbrand</h1>
-                    <p id="appSubtitle" class="text-xs text-gray-400">Intelligence</p>
+                    <p id="appSubtitle" class="text-xs text-gray-400">Auto Intelligence</p>
                 </div>
             </div>
-            
-            <div class="flex items-center gap-4">
-                <div class="text-sm text-gray-400">
-                    Requests: <span id="rateCount" class="text-purple-400">--</span>/<span id="rateLimit">4</span>
-                    <button id="unlockBtn" class="hidden ml-2 text-xs bg-purple-600 hover:bg-purple-500 px-2 py-1 rounded">🔓 Unlock</button>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-400">Requests:</span>
+                <div class="w-16 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-purple-500 to-indigo-600" style="width: 100%"></div>
                 </div>
-                <button id="chatToggle" class="glass-dark px-3 py-1.5 rounded-lg flex items-center gap-2 hover:bg-white/10 transition">
-                    <span>💬</span>
-                    <span class="text-sm">SmaartAnalyst</span>
-                </button>
+                <span class="text-xs font-medium">∞</span>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-6 py-6 flex-grow">
+    <main class="max-w-7xl mx-auto px-6 py-4 flex-grow w-full">
         <!-- Mode Tabs -->
-        <div class="glass rounded-t-2xl px-4 py-3 flex items-center justify-between">
-            <div class="flex gap-2">
+        <div class="glass rounded-t-2xl px-4 py-2 flex items-center border-b border-white/10">
+            <div class="flex gap-1 flex-1">
                 <button id="brandViewTab" class="mode-tab px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white" onclick="switchMode('brand')">Brand View</button>
                 <button id="modelViewTab" class="mode-tab px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white" onclick="switchMode('model')">Model View</button>
                 <button id="compareBrandsModeTab" class="mode-tab px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white" onclick="switchMode('compareBrands')">Compare Brands</button>
                 <button id="compareModelsModeTab" class="mode-tab px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white" onclick="switchMode('compareModels')">Compare Models</button>
             </div>
+            <button id="chatToggle" class="glass-dark px-3 py-1.5 rounded-lg flex items-center gap-2 hover:bg-white/10 transition">
+                <span>💬</span><span class="text-xs">SmaartAnalyst</span>
+            </button>
         </div>
-        
+
         <!-- Brand View Selectors -->
-        <div id="brandViewSelectors" class="glass rounded-none px-4 py-3 border-t border-white/10 flex items-center gap-4">
-            <select id="brandSelect" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[150px]">
-                <option value="">Select Brand</option>
-            </select>
-            <select id="segmentSelect" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[150px]">
-                <option value="">All Segments</option>
-            </select>
-            <button id="applyBrandBtn" class="bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">Apply</button>
-        </div>
-        
-        <!-- Model View Selectors -->
-        <div id="modelViewSelectors" class="glass rounded-none px-4 py-3 border-t border-white/10 hidden">
-            <div class="flex items-center gap-4">
-                <select id="modelBrandSelect" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[150px]">
+        <div id="brandViewSelectors" class="glass rounded-none px-4 py-3 border-b border-white/10">
+            <div class="flex items-center gap-3 flex-wrap">
+                <select id="brandSelect" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[140px]">
                     <option value="">Select Brand</option>
                 </select>
-                <select id="modelSelect" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[200px]">
+                <select id="segmentSelect" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[140px]">
+                    <option value="">All Segments</option>
+                </select>
+                <button id="applyBrandBtn" class="px-5 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:opacity-90 transition">Apply</button>
+            </div>
+        </div>
+
+        <!-- Model View Selectors -->
+        <div id="modelViewSelectors" class="glass rounded-none px-4 py-3 border-b border-white/10 hidden">
+            <div class="flex items-center gap-3 flex-wrap">
+                <select id="modelBrandSelect" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[140px]">
+                    <option value="">Select Brand</option>
+                </select>
+                <select id="modelSelect" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[180px]">
                     <option value="">Select Model</option>
                 </select>
-                <button id="applyModelBtn" class="bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">Apply</button>
+                <button id="applyModelBtn" class="px-5 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:opacity-90 transition">Apply</button>
             </div>
         </div>
-        
+
         <!-- Compare Brands Selectors -->
-        <div id="compareBrandsSelectors" class="glass rounded-none px-4 py-3 border-t border-white/10 hidden">
-            <div class="flex items-center gap-4 flex-wrap">
-                <select id="compareBrand1" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[140px]">
-                    <option value="">Brand 1</option>
-                </select>
+        <div id="compareBrandsSelectors" class="glass rounded-none px-4 py-3 border-b border-white/10 hidden">
+            <div class="flex items-center gap-3 flex-wrap">
+                <select id="compareBrand1" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[130px]"><option value="">Brand 1</option></select>
                 <span class="text-gray-500">vs</span>
-                <select id="compareBrand2" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[140px]">
-                    <option value="">Brand 2</option>
-                </select>
+                <select id="compareBrand2" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[130px]"><option value="">Brand 2</option></select>
                 <span class="text-gray-500">vs</span>
-                <select id="compareBrand3" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[140px]">
-                    <option value="">Brand 3</option>
-                </select>
-                <select id="compareGender" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none">
-                    <option value="">All Genders</option>
-                    <option value="M">Male</option>
-                    <option value="F">Female</option>
-                </select>
-                <select id="comparePersona" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none">
-                    <option value="">All Personas</option>
-                </select>
-                <button id="runCompareBrandsBtn" class="bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">Compare</button>
+                <select id="compareBrand3" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[130px]"><option value="">Brand 3</option></select>
+                <button id="runCompareBrandsBtn" class="px-5 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:opacity-90 transition">Compare</button>
             </div>
         </div>
-        
+
         <!-- Compare Models Selectors -->
-        <div id="compareModelsSelectors" class="glass rounded-none px-4 py-3 border-t border-white/10 hidden">
-            <div class="flex items-center gap-4 flex-wrap">
-                <div class="flex items-center gap-2">
-                    <select id="compareModelBrand1" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[120px]">
-                        <option value="">Brand</option>
-                    </select>
-                    <select id="compareModel1" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[140px]">
-                        <option value="">Model 1</option>
-                    </select>
-                </div>
+        <div id="compareModelsSelectors" class="glass rounded-none px-4 py-3 border-b border-white/10 hidden">
+            <div class="flex items-center gap-2 flex-wrap">
+                <select id="compareModelBrand1" class="glass-dark px-2 py-2 rounded-lg text-sm focus:outline-none min-w-[100px]"><option value="">Brand</option></select>
+                <select id="compareModel1" class="glass-dark px-2 py-2 rounded-lg text-sm focus:outline-none min-w-[120px]"><option value="">Model 1</option></select>
                 <span class="text-gray-500">vs</span>
-                <div class="flex items-center gap-2">
-                    <select id="compareModelBrand2" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[120px]">
-                        <option value="">Brand</option>
-                    </select>
-                    <select id="compareModel2" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[140px]">
-                        <option value="">Model 2</option>
-                    </select>
-                </div>
+                <select id="compareModelBrand2" class="glass-dark px-2 py-2 rounded-lg text-sm focus:outline-none min-w-[100px]"><option value="">Brand</option></select>
+                <select id="compareModel2" class="glass-dark px-2 py-2 rounded-lg text-sm focus:outline-none min-w-[120px]"><option value="">Model 2</option></select>
                 <span class="text-gray-500">vs</span>
-                <div class="flex items-center gap-2">
-                    <select id="compareModelBrand3" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[120px]">
-                        <option value="">Brand</option>
-                    </select>
-                    <select id="compareModel3" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[140px]">
-                        <option value="">Model 3</option>
-                    </select>
-                </div>
-                <select id="compareModelsGender" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none">
-                    <option value="">All Genders</option>
-                    <option value="M">Male</option>
-                    <option value="F">Female</option>
-                </select>
-                <select id="compareModelsPersona" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none">
-                    <option value="">All Personas</option>
-                </select>
-                <button id="runCompareModelsBtn" class="bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">Compare</button>
+                <select id="compareModelBrand3" class="glass-dark px-2 py-2 rounded-lg text-sm focus:outline-none min-w-[100px]"><option value="">Brand</option></select>
+                <select id="compareModel3" class="glass-dark px-2 py-2 rounded-lg text-sm focus:outline-none min-w-[120px]"><option value="">Model 3</option></select>
+                <button id="runCompareModelsBtn" class="px-5 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:opacity-90 transition">Compare</button>
             </div>
         </div>
-        
-        <!-- Main Content Area (hidden until Apply) -->
+
+        <!-- Main Content (hidden until Apply) -->
         <div id="mainContent" class="hidden">
-        <!-- Stats Row -->
-        <div id="statsRow" class="glass rounded-none px-4 py-4 border-t border-white/10">
-            <div class="grid grid-cols-4 gap-4">
-                <div class="stat-card glass-dark rounded-xl p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-gray-400 text-xs">Total Mentions</span>
-                        <span class="text-lg">💬</span>
+            <!-- Stats Row -->
+            <div id="statsRow" class="glass rounded-none px-4 py-4 border-b border-white/10">
+                <div class="grid grid-cols-4 gap-4">
+                    <div class="stat-card glass-dark rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-gray-400 text-xs">Total Mentions</span>
+                            <span class="text-lg">💬</span>
+                        </div>
+                        <div id="statOverall" class="text-2xl font-bold gradient-text">--</div>
+                        <div id="statMentions" class="text-xs text-gray-500">from Reddit discussions</div>
                     </div>
-                    <div id="statOverall" class="text-2xl font-bold gradient-text">--</div>
-                    <div id="statMentions" class="text-xs text-gray-500">from Reddit discussions</div>
-                </div>
-                
-                <div class="stat-card glass-dark rounded-xl p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-gray-400 text-xs">Top Strength</span>
-                        <span class="text-lg">💪</span>
+                    <div class="stat-card glass-dark rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-gray-400 text-xs">Top Strength</span>
+                            <span class="text-lg">💪</span>
+                        </div>
+                        <div id="statStrength" class="text-lg font-bold text-green-400">--</div>
+                        <div id="statStrengthScore" class="text-xs text-gray-500">--</div>
                     </div>
-                    <div id="statStrength" class="text-lg font-bold text-green-400">--</div>
-                    <div id="statStrengthScore" class="text-xs text-gray-500">--</div>
-                </div>
-                
-                <div class="stat-card glass-dark rounded-xl p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-gray-400 text-xs">Needs Attention</span>
-                        <span class="text-lg">⚠️</span>
+                    <div class="stat-card glass-dark rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-gray-400 text-xs">Needs Attention</span>
+                            <span class="text-lg">⚠️</span>
+                        </div>
+                        <div id="statWeakness" class="text-lg font-bold text-amber-400">--</div>
+                        <div id="statWeaknessScore" class="text-xs text-gray-500">--</div>
                     </div>
-                    <div id="statWeakness" class="text-lg font-bold text-amber-400">--</div>
-                    <div id="statWeaknessScore" class="text-xs text-gray-500">--</div>
-                </div>
-                
-                <div class="stat-card glass-dark rounded-xl p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-gray-400 text-xs">Top Buyer Type</span>
-                        <span class="text-lg">👥</span>
+                    <div class="stat-card glass-dark rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-gray-400 text-xs">Top Buyer Type</span>
+                            <span class="text-lg">👥</span>
+                        </div>
+                        <div id="statBuyerType" class="text-lg font-bold text-purple-400">--</div>
+                        <div id="statBuyerPct" class="text-xs text-gray-500">--</div>
                     </div>
-                    <div id="statBuyerType" class="text-lg font-bold text-purple-400">--</div>
-                    <div id="statBuyerPct" class="text-xs text-gray-500">--</div>
                 </div>
             </div>
-        </div>
 
-        <!-- Sub Tabs -->
-        <div id="subTabsRow" class="glass rounded-none px-4 py-2 border-t border-white/10">
-            <div class="flex gap-2 overflow-x-auto pb-1">
-                <button class="sub-tab active px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white" data-tab="drivers">📊 Drivers</button>
-                <button class="sub-tab px-4 py-2 rounded-lg text-sm font-medium text-gray-400" data-tab="satisfaction">📈 Satisfaction</button>
-                <button class="sub-tab px-4 py-2 rounded-lg text-sm font-medium text-gray-400" data-tab="rnd">🔬 R&D Signals</button>
-                <button class="sub-tab px-4 py-2 rounded-lg text-sm font-medium text-gray-400" data-tab="demographics">👥 Demographics</button>
+            <!-- Sub Tabs -->
+            <div id="subTabsRow" class="glass rounded-none px-4 py-2 border-b border-white/10">
+                <div class="flex gap-2">
+                    <button class="sub-tab active px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white" data-tab="drivers">📊 Drivers</button>
+                    <button class="sub-tab px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white" data-tab="satisfaction">📈 Satisfaction</button>
+                    <button class="sub-tab px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white" data-tab="rnd">🔬 R&D Signals</button>
+                    <button class="sub-tab px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white" data-tab="demographics">👥 Demographics</button>
+                </div>
             </div>
-        </div>
 
-        <!-- Tab Content -->
-        <div class="glass rounded-b-2xl">
-            <!-- Drivers Tab -->
-            <div id="driversTab" class="tab-panel p-6">
-                <!-- Summary Cards -->
-                <div class="grid grid-cols-2 gap-6 mb-6">
-                    <!-- What Buyers Love -->
-                    <div class="glass rounded-2xl p-6 border border-green-500/20">
-                        <div class="flex items-center gap-2 mb-4">
-                            <span class="text-2xl">✅</span>
-                            <h3 class="text-lg font-semibold text-green-400">What Buyers Love</h3>
-                        </div>
-                        <div id="praisesContainer" class="space-y-3">
-                            <div class="text-center py-8 text-gray-500">Loading...</div>
-                        </div>
-                    </div>
-                    
-                    <!-- What Needs Attention -->
-                    <div class="glass rounded-2xl p-6 border border-red-500/20">
-                        <div class="flex items-center gap-2 mb-4">
-                            <span class="text-2xl">⚠️</span>
-                            <h3 class="text-lg font-semibold text-red-400">What Needs Attention</h3>
-                        </div>
-                        <div id="concernsContainer" class="space-y-3">
-                            <div class="text-center py-8 text-gray-500">Loading...</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Share of Voice Chart -->
-                <div class="glass rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold mb-4">Share of Voice by Aspect</h3>
-                    <div id="sovChart" style="height: 350px; cursor: pointer;"></div>
-                    <p class="text-xs text-gray-500 text-center mt-2">💡 Click on any bar to see sample reviews</p>
-                </div>
-            </div>
-            
-            <!-- Satisfaction Tab - Now shows raw counts table only -->
-            <div id="satisfactionTab" class="tab-panel hidden">
-                <!-- Detailed Breakdown Table -->
-                <div class="glass rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold mb-2">Aspect Breakdown</h3>
-                    <p class="text-sm text-gray-400 mb-4">Positive vs Negative mentions by aspect. Click counts to see sample reviews.</p>
-                    <div id="satisfactionTable" class="overflow-x-auto">
-                        <div class="text-center py-8 text-gray-500">Loading...</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- R&D Signals Tab -->
-            <div id="rndTab" class="tab-panel hidden">
-                <div class="grid grid-cols-2 gap-6">
-                    <!-- Feature Requests -->
-                    <div class="glass rounded-2xl p-6">
-                        <div class="flex items-center gap-2 mb-4">
-                            <span class="text-xl">💡</span>
-                            <h3 class="text-lg font-semibold">Feature Requests</h3>
-                        </div>
-                        <div id="featureRequestsContainer" class="space-y-2 max-h-96 overflow-y-auto">
-                            <div class="text-center py-8 text-gray-500">Loading...</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Pain Points -->
-                    <div class="glass rounded-2xl p-6">
-                        <div class="flex items-center gap-2 mb-4">
-                            <span class="text-xl">🔧</span>
-                            <h3 class="text-lg font-semibold">Pain Points & Issues</h3>
-                        </div>
-                        <div id="painPointsContainer" class="space-y-2 max-h-96 overflow-y-auto">
-                            <div class="text-center py-8 text-gray-500">Loading...</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- All R&D Signals -->
-                <div class="glass rounded-2xl p-6 mt-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-2">
-                            <span class="text-xl">🔬</span>
-                            <h3 class="text-lg font-semibold">All R&D Signals</h3>
-                        </div>
-                        <span id="rndTotalCount" class="text-sm text-gray-400"></span>
-                    </div>
-                    <div id="allRndSignals" class="grid grid-cols-3 gap-3 max-h-96 overflow-y-auto">
-                        <div class="text-center py-8 text-gray-500 col-span-3">Loading...</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Demographics Tab -->
-            <div id="demographicsTab" class="tab-panel hidden p-6">
-                <div class="grid grid-cols-3 gap-6">
-                    <div class="glass rounded-2xl p-6">
-                        <h3 class="text-lg font-semibold mb-4">Buyer Persona</h3>
-                        <div id="personaChart" style="height: 280px;"></div>
-                    </div>
-                    <div class="glass rounded-2xl p-6">
-                        <h3 class="text-lg font-semibold mb-4">Purchase Intent</h3>
-                        <div id="intentChart" style="height: 280px;"></div>
-                    </div>
-                    <div class="glass rounded-2xl p-6">
-                        <h3 class="text-lg font-semibold mb-4">Gender Distribution</h3>
-                        <div id="genderChart" style="height: 280px;"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Comparison Tab (for Compare Brands mode) -->
-            <div id="comparisonTab" class="tab-panel hidden p-6">
-                <!-- Satisfaction Score Section -->
-                <div class="glass rounded-2xl p-6 mb-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold">Satisfaction Score</h3>
-                        <div class="flex items-center gap-4 text-xs text-gray-400">
-                            <span>Low</span>
-                            <div class="flex gap-1">
-                                <div class="w-6 h-3 rounded" style="background: rgba(255, 99, 99, 0.3);"></div>
-                                <div class="w-6 h-3 rounded" style="background: rgba(255, 180, 100, 0.3);"></div>
-                                <div class="w-6 h-3 rounded" style="background: rgba(100, 200, 180, 0.3);"></div>
-                                <div class="w-6 h-3 rounded" style="background: rgba(100, 200, 180, 0.4);"></div>
+            <!-- Tab Panels -->
+            <div class="glass rounded-b-2xl">
+                <!-- Drivers Tab -->
+                <div id="driversTab" class="tab-panel p-6">
+                    <div class="grid grid-cols-2 gap-6 mb-6">
+                        <div class="glass rounded-2xl p-6 border border-green-500/20">
+                            <div class="flex items-center gap-2 mb-4">
+                                <span class="text-2xl">✅</span>
+                                <h3 class="text-lg font-semibold text-green-400">What Buyers Love</h3>
                             </div>
-                            <span>High</span>
-                        </div>
-                    </div>
-                    <div id="satisfactionScoreTable"></div>
-                </div>
-                
-                <!-- Driver Analysis Section -->
-                <div class="glass rounded-2xl p-6 mb-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold">Driver Analysis</h3>
-                        <div class="flex items-center gap-4 text-xs text-gray-400">
-                            <span>Low</span>
-                            <div class="flex gap-1">
-                                <div class="w-6 h-3 rounded" style="background: rgba(255, 99, 99, 0.3);"></div>
-                                <div class="w-6 h-3 rounded" style="background: rgba(255, 180, 100, 0.3);"></div>
-                                <div class="w-6 h-3 rounded" style="background: rgba(100, 200, 180, 0.3);"></div>
-                                <div class="w-6 h-3 rounded" style="background: rgba(100, 200, 180, 0.4);"></div>
+                            <div id="praisesContainer" class="space-y-3">
+                                <div class="text-center py-8 text-gray-500">Select a brand and click Apply</div>
                             </div>
-                            <span>High</span>
+                        </div>
+                        <div class="glass rounded-2xl p-6 border border-red-500/20">
+                            <div class="flex items-center gap-2 mb-4">
+                                <span class="text-2xl">⚠️</span>
+                                <h3 class="text-lg font-semibold text-red-400">What Needs Attention</h3>
+                            </div>
+                            <div id="concernsContainer" class="space-y-3">
+                                <div class="text-center py-8 text-gray-500">Select a brand and click Apply</div>
+                            </div>
                         </div>
                     </div>
-                    <div id="driverAnalysisTable"></div>
-                </div>
-                
-                <!-- Attribute Wins by Brand -->
-                <div class="glass rounded-2xl p-6">
-                    <div class="flex items-center gap-2 mb-2">
-                        <h3 class="text-lg font-semibold">Attribute Wins by Brand</h3>
-                        <span class="text-gray-400 text-xs cursor-help" title="Shows which brand scores highest on each attribute">ℹ️</span>
+                    <div class="glass rounded-2xl p-6">
+                        <h3 class="text-lg font-semibold mb-4">Share of Voice by Aspect</h3>
+                        <div id="sovChart" style="height: 350px;"></div>
                     </div>
-                    <p class="text-xs text-gray-400 mb-4">Attributes listed under the brand that scores highest on them.</p>
-                    <div id="correspondenceChart" class="grid grid-cols-3 gap-6" style="min-height: 320px;"></div>
+                </div>
+
+                <!-- Satisfaction Tab -->
+                <div id="satisfactionTab" class="tab-panel hidden p-6">
+                    <div class="glass rounded-2xl p-6">
+                        <h3 class="text-lg font-semibold mb-4">Aspect Breakdown</h3>
+                        <div id="satisfactionTable"></div>
+                    </div>
+                </div>
+
+                <!-- R&D Tab -->
+                <div id="rndTab" class="tab-panel hidden p-6">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="glass rounded-2xl p-6">
+                            <div class="flex items-center gap-2 mb-4">
+                                <span class="text-xl">💡</span>
+                                <h3 class="text-lg font-semibold">Feature Requests</h3>
+                            </div>
+                            <div id="featureRequestsContainer" class="space-y-2 max-h-96 overflow-y-auto"></div>
+                        </div>
+                        <div class="glass rounded-2xl p-6">
+                            <div class="flex items-center gap-2 mb-4">
+                                <span class="text-xl">🔧</span>
+                                <h3 class="text-lg font-semibold">Pain Points</h3>
+                            </div>
+                            <div id="painPointsContainer" class="space-y-2 max-h-96 overflow-y-auto"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Demographics Tab -->
+                <div id="demographicsTab" class="tab-panel hidden p-6">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="glass rounded-2xl p-6">
+                            <h3 class="text-lg font-semibold mb-4">Buyer Personas</h3>
+                            <div id="personaChart" style="height: 300px;"></div>
+                        </div>
+                        <div class="glass rounded-2xl p-6">
+                            <h3 class="text-lg font-semibold mb-4">Gender Distribution</h3>
+                            <div id="genderChart" style="height: 300px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison Tab (shown when Compare mode is active) -->
+                <div id="comparisonTab" class="tab-panel hidden p-6">
+                    <div class="mb-6">
+                        <h4 class="text-md font-semibold text-purple-400 mb-4">Satisfaction Score</h4>
+                        <div id="satisfactionScoreTable"></div>
+                    </div>
+                    <div class="mb-6">
+                        <h4 class="text-md font-semibold text-purple-400 mb-4">Driver Analysis</h4>
+                        <div id="driverAnalysisTable"></div>
+                    </div>
+                    <div>
+                        <h4 class="text-md font-semibold text-purple-400 mb-4">Attribute Wins 🏆</h4>
+                        <div id="correspondenceChart" class="grid grid-cols-3 gap-4"></div>
+                    </div>
                 </div>
             </div>
         </div>
-        </div><!-- close mainContent -->
     </main>
-    
+
     <!-- Footer -->
     <footer class="glass py-4 px-6 mt-auto">
         <div class="max-w-7xl mx-auto flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <img src="/acquink_logo.png" alt="Acquink" class="h-6" onerror="this.style.display='none'">
-                <span class="text-gray-400 text-sm">© 2026 Acquink. All rights reserved.</span>
+                <img src="/acquink_logo.png" alt="Acquink" class="h-6 opacity-70" onerror="this.style.display='none'">
+                <span class="text-xs text-gray-400">© 2026 Acquink Technologies</span>
             </div>
-            <div class="text-gray-500 text-sm">
-                Powered by <span class="text-purple-400">MASI</span> Technology
-            </div>
+            <div class="text-xs text-gray-500">Powered by <span class="text-purple-400">MASI</span> Technology</div>
         </div>
     </footer>
 
-    <!-- Chat Panel - Matching Hotels -->
-    <div id="chatPanel" class="chat-panel fixed right-0 top-0 h-full w-[50vw] min-w-[500px] max-w-[800px] glass-dark z-50 flex flex-col">
-        <!-- Collapsed Bar -->
-        <div class="chat-collapsed-bar hidden flex-col items-center justify-center h-full py-4 cursor-pointer" onclick="expandChat()">
-            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-3">
-                <span>🤖</span>
-            </div>
-            <span class="text-xs text-gray-400" style="writing-mode: vertical-rl; text-orientation: mixed;">SmaartAnalyst</span>
-            <div class="mt-4 text-purple-400">◀</div>
-        </div>
-        
-        <!-- Main Chat Content -->
-        <div class="chat-content flex flex-col h-full">
-            <div class="p-4 border-b border-white/10 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
-                        <span>🤖</span>
-                    </div>
-                    <div>
-                        <h3 class="font-semibold">SmaartAnalyst</h3>
-                        <p id="chatContextLabel" class="text-xs text-gray-400">Intelligence AI</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button id="chatCollapse" class="text-gray-400 hover:text-white transition text-lg" title="Collapse">▶</button>
-                    <button id="chatClose" class="text-gray-400 hover:text-white transition text-xl" title="Close">✕</button>
-                </div>
-            </div>
-            
-            <div class="p-4 border-b border-white/10">
-                <p class="text-xs text-gray-400 mb-2">Quick questions:</p>
-                <div class="flex flex-wrap gap-2">
-                    <button class="quick-btn glass text-xs px-3 py-1.5 rounded-full hover:bg-white/10" data-question="What should we improve?">🔧 Improvements</button>
-                    <button class="quick-btn glass text-xs px-3 py-1.5 rounded-full hover:bg-white/10" data-question="How do family buyers rate us?">👨‍👩‍👧 Families</button>
-                    <button class="quick-btn glass text-xs px-3 py-1.5 rounded-full hover:bg-white/10" data-question="What are our top strengths?">💪 Strengths</button>
-                    <button class="quick-btn glass text-xs px-3 py-1.5 rounded-full hover:bg-white/10" data-question="Compare us to competitors">🏆 vs Competitors</button>
-                    <button class="quick-btn glass text-xs px-3 py-1.5 rounded-full hover:bg-white/10" data-question="What features do buyers want?">⚙️ Features</button>
-                </div>
-            </div>
-            
-            <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4">
-                <div class="flex gap-3">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center flex-shrink-0">🤖</div>
-                    <div class="glass rounded-2xl rounded-tl-none p-4 max-w-[85%]">
-                        <p class="text-sm">Hi! I'm SmaartAnalyst. Ask me about buyer sentiment, model comparisons, persona insights, or feature demand.</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="p-4 border-t border-white/10">
-                <div class="flex gap-2">
-                    <input id="chatInput" type="text" placeholder="Ask about buyer sentiment, comparisons, recommendations..." 
-                           class="flex-1 glass px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm">
-                    <button id="chatSend" class="px-4 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:opacity-90 transition">➤</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Chat Overlay -->
+    <!-- Chat Panel -->
     <div id="chatOverlay" class="fixed inset-0 bg-black/50 z-40 hidden"></div>
-
-    <!-- Sample Reviews Modal -->
-    <div id="reviewsModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/70" onclick="closeReviewsModal()"></div>
-        <div class="relative glass rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-            <div class="p-4 border-b border-white/10 flex items-center justify-between">
-                <div>
-                    <h3 id="reviewsModalTitle" class="text-lg font-semibold">Sample Reviews</h3>
-                    <p id="reviewsModalSubtitle" class="text-xs text-gray-400">Click on reviews to see why buyers feel this way</p>
-                </div>
-                <button onclick="closeReviewsModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+    <div id="chatPanel" class="chat-panel fixed top-0 right-0 h-full w-full md:w-96 glass z-50 flex flex-col">
+        <div class="p-4 border-b border-white/10 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-xl">💬</span>
+                <span id="chatContextLabel" class="font-semibold">SmaartAnalyst</span>
             </div>
-            <div class="flex gap-2 px-4 pt-3">
-                <button id="reviewsFilterAll" onclick="filterReviews('all')" class="px-3 py-1 rounded-full text-xs bg-purple-500/30 text-purple-300">All</button>
-                <button id="reviewsFilterPositive" onclick="filterReviews('positive')" class="px-3 py-1 rounded-full text-xs bg-white/5 text-gray-400 hover:bg-green-500/20 hover:text-green-300">👍 Positive</button>
-                <button id="reviewsFilterNegative" onclick="filterReviews('negative')" class="px-3 py-1 rounded-full text-xs bg-white/5 text-gray-400 hover:bg-red-500/20 hover:text-red-300">👎 Negative</button>
+            <div class="flex items-center gap-2">
+                <button id="chatCollapse" class="p-1 hover:bg-white/10 rounded">◀</button>
+                <button id="chatClose" class="p-1 hover:bg-white/10 rounded">✕</button>
             </div>
-            <div id="reviewsModalContent" class="flex-1 overflow-y-auto p-4 space-y-3">
-                <div class="text-center py-8 text-gray-500">Loading reviews...</div>
+        </div>
+        <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4">
+            <div class="text-sm text-gray-400 text-center py-4">Ask me anything about the data...</div>
+        </div>
+        <div class="p-4 border-t border-white/10">
+            <div class="flex gap-2">
+                <input id="chatInput" type="text" placeholder="Ask a question..." class="flex-1 glass-dark px-4 py-2 rounded-lg text-sm focus:outline-none">
+                <button id="chatSend" class="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg text-sm font-medium">Send</button>
             </div>
         </div>
     </div>
 
     <script>
         // ═══════════════════════════════════════════
-        // STATE
+        // STATE & CONFIG
         // ═══════════════════════════════════════════
-        let config = {};  // Loaded from /api/config
-        let currentBrand = null;
-        let currentModel = null;
-        let currentMode = 'brand'; // brand, model, compareBrands, compareModels
+        let config = { vehicle_type: 'car', title: 'Smaartbrand Auto', subtitle: 'Auto Intelligence', icon: '🚗' };
         let brands = [];
         let models = [];
+        let currentBrand = null;
+        let currentModel = null;
+        let currentMode = 'brand';
         let charts = {};
         
         const ASPECT_ICONS = {
-            'Performance': '🏎️', 'Comfort': '🛋️', 'Safety': '🛡️', 'Features': '⚙️',
-            'Space': '📦', 'Mileage': '⛽', 'Ownership': '🔧', 'Value': '💰',
-            'Brand': '🏷️', 'Style': '✨', 'Handling': '🎯', 'Build': '🔩'
+            'Performance': '⚡', 'Mileage': '⛽', 'Comfort': '🛋️', 'Build Quality': '🔧',
+            'Features': '✨', 'Safety': '🛡️', 'Value': '💰', 'Service': '🔧',
+            'Design': '🎨', 'Interior': '🪑', 'Reliability': '✅', 'Engine': '🔥',
+            'Price': '💵', 'Maintenance': '🛠️', 'Ride Quality': '🛣️', 'Space': '📦'
         };
         
-        const PERSONA_LABELS = {
-            'value_seeker': 'Value Seeker', 'enthusiast': 'Enthusiast',
-            'family': 'Family Buyer', 'commuter': 'Commuter',
-            'first_buyer': 'First Buyer', 'tech': 'Tech Enthusiast'
-        };
+        const itemColors = ['#667eea', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
         
-        const itemColors = ['#f59e0b', '#8b5cf6', '#10b981', '#3b82f6'];
-        
-        // Colorblind-safe palette (Wong palette)
-        const cbSafePalette = ['#0072B2', '#D55E00', '#009E73', '#F0E442', '#CC79A7', '#56B4E9', '#E69F00'];
-        
-        // Loading state helper
-        function setLoading(isLoading) {
-            if (isLoading) {
-                document.getElementById('statOverall').textContent = '...';
-                document.getElementById('statStrength').textContent = 'Loading...';
-                document.getElementById('statWeakness').textContent = 'Loading...';
-                document.getElementById('statBuyerType').textContent = 'Loading...';
-            }
-        }
-        
+        function formatNumber(n) { return n >= 1000 ? (n/1000).toFixed(1) + 'K' : n?.toString() || '0'; }
+
         // ═══════════════════════════════════════════
         // MODE SWITCHING
         // ═══════════════════════════════════════════
         function switchMode(mode) {
             currentMode = mode;
             
-            // Update mode tab styles
+            // Update tab styles
             document.querySelectorAll('.mode-tab').forEach(btn => {
                 btn.classList.remove('bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
                 btn.classList.add('text-gray-400');
             });
-            const activeTab = document.getElementById(mode + 'ViewTab') || document.getElementById(mode + 'ModeTab');
-            if (activeTab) {
-                activeTab.classList.add('bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
-                activeTab.classList.remove('text-gray-400');
-            }
+            document.getElementById(mode + 'ViewTab') && document.getElementById(mode + 'ViewTab').classList.add('bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
+            document.getElementById(mode + 'ModeTab') && document.getElementById(mode + 'ModeTab').classList.add('bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
             
             // Hide all selectors
-            document.getElementById('brandViewSelectors').classList.add('hidden');
-            document.getElementById('modelViewSelectors').classList.add('hidden');
-            document.getElementById('compareBrandsSelectors').classList.add('hidden');
-            document.getElementById('compareModelsSelectors').classList.add('hidden');
+            ['brandViewSelectors', 'modelViewSelectors', 'compareBrandsSelectors', 'compareModelsSelectors'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
             
-            // Hide mainContent initially
+            // Show appropriate selector
+            if (mode === 'brand') document.getElementById('brandViewSelectors').classList.remove('hidden');
+            else if (mode === 'model') document.getElementById('modelViewSelectors').classList.remove('hidden');
+            else if (mode === 'compareBrands') document.getElementById('compareBrandsSelectors').classList.remove('hidden');
+            else if (mode === 'compareModels') document.getElementById('compareModelsSelectors').classList.remove('hidden');
+            
+            // Hide main content when switching modes
             document.getElementById('mainContent').classList.add('hidden');
-            
-            // Show appropriate selector and content
-            if (mode === 'brand') {
-                document.getElementById('brandViewSelectors').classList.remove('hidden');
-            } else if (mode === 'model') {
-                document.getElementById('modelViewSelectors').classList.remove('hidden');
-            } else if (mode === 'compareBrands') {
-                document.getElementById('compareBrandsSelectors').classList.remove('hidden');
-            } else if (mode === 'compareModels') {
-                document.getElementById('compareModelsSelectors').classList.remove('hidden');
-            }
-            
-            // Clear comparison data when switching away from compare mode
-            if (mode !== 'compareBrands') {
-                document.getElementById('satisfactionScoreTable').innerHTML = '';
-                document.getElementById('driverAnalysisTable').innerHTML = '';
-                document.getElementById('correspondenceChart').innerHTML = '';
-            }
         }
-        
-        function applyBrandView() {
+
+        // ═══════════════════════════════════════════
+        // APPLY FUNCTIONS
+        // ═══════════════════════════════════════════
+        async function applyBrandView() {
             const brand = document.getElementById('brandSelect').value;
-            if (!brand) {
-                alert('Please select a brand');
-                return;
-            }
+            if (!brand) { alert('Please select a brand'); return; }
+            
             currentBrand = brand;
             currentModel = null;
             
-            // Show main content
             document.getElementById('mainContent').classList.remove('hidden');
             document.getElementById('statsRow').classList.remove('hidden');
             document.getElementById('subTabsRow').classList.remove('hidden');
             
-            // Show drivers tab by default
+            // Hide comparison tab, show regular tabs
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
             document.getElementById('driversTab').classList.remove('hidden');
             
-            // Reset sub-tab styling
+            // Reset sub-tabs
             document.querySelectorAll('.sub-tab').forEach(b => {
                 b.classList.remove('active', 'bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
                 b.classList.add('text-gray-400');
@@ -664,71 +386,56 @@
             document.querySelector('.sub-tab[data-tab="drivers"]').classList.add('active', 'bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
             document.querySelector('.sub-tab[data-tab="drivers"]').classList.remove('text-gray-400');
             
-            loadAllData();
+            await loadAllData();
         }
-        
-        function applyModelView() {
+
+        async function applyModelView() {
             const brand = document.getElementById('modelBrandSelect').value;
             const model = document.getElementById('modelSelect').value;
-            if (!brand || !model) {
-                alert('Please select a brand and model');
-                return;
-            }
+            if (!brand || !model) { alert('Please select a brand and model'); return; }
+            
             currentBrand = brand;
             currentModel = model;
             
-            // Show main content
             document.getElementById('mainContent').classList.remove('hidden');
             document.getElementById('statsRow').classList.remove('hidden');
             document.getElementById('subTabsRow').classList.remove('hidden');
             
-            // Show drivers tab by default
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
             document.getElementById('driversTab').classList.remove('hidden');
             
-            // Reset sub-tab styling
             document.querySelectorAll('.sub-tab').forEach(b => {
                 b.classList.remove('active', 'bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
                 b.classList.add('text-gray-400');
             });
             document.querySelector('.sub-tab[data-tab="drivers"]').classList.add('active', 'bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
-            document.querySelector('.sub-tab[data-tab="drivers"]').classList.remove('text-gray-400');
             
-            loadAllData();
+            await loadAllData();
         }
-        
+
         // ═══════════════════════════════════════════
-        // INITIALIZATION - Load config first
+        // INITIALIZATION
         // ═══════════════════════════════════════════
         document.addEventListener('DOMContentLoaded', async () => {
             await loadConfig();
             await loadBrands();
             setupEventListeners();
         });
-        
+
         async function loadConfig() {
             try {
                 const res = await fetch('/api/config');
                 config = await res.json();
-                
-                // Update UI with config
                 document.title = config.title + ' | Decision Intelligence';
                 document.getElementById('appTitle').textContent = config.title;
                 document.getElementById('appSubtitle').textContent = config.subtitle;
-                document.getElementById('chatContextLabel').textContent = config.subtitle + ' AI';
-                
-                // Update favicon based on vehicle type
                 const faviconEmoji = config.vehicle_type === 'bike' ? '🏍️' : '🚗';
                 document.getElementById('favicon').href = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${faviconEmoji}</text></svg>`;
-                
-                console.log(`[CONFIG] Running in ${config.vehicle_type.toUpperCase()} mode`);
             } catch (e) {
-                console.error('Failed to load config:', e);
-                // Fallback defaults
-                config = { vehicle_type: 'car', title: 'Smaartbrand Auto', subtitle: 'Auto Intelligence', icon: '🚗' };
+                console.error('Config error:', e);
             }
         }
-        
+
         async function loadBrands() {
             try {
                 const res = await fetch('/api/brands');
@@ -738,73 +445,60 @@
                 selects.forEach(id => {
                     const select = document.getElementById(id);
                     if (select) {
-                        const defaultText = id.startsWith('compare') ? (id.includes('Model') ? 'Brand' : 'Brand ' + id.slice(-1)) : 'Select Brand';
-                        select.innerHTML = `<option value="">${defaultText}</option>` + 
-                            brands.map(b => `<option value="${b}">${b}</option>`).join('');
+                        const label = id.includes('compare') ? (id.includes('Model') ? 'Brand' : 'Brand') : 'Select Brand';
+                        select.innerHTML = `<option value="">${label}</option>` + brands.map(b => `<option value="${b}">${b}</option>`).join('');
                     }
                 });
                 
-                // Populate persona dropdowns
-                ['comparePersona', 'compareModelsPersona'].forEach(id => {
-                    const personaSelect = document.getElementById(id);
-                    if (personaSelect) {
-                        personaSelect.innerHTML = '<option value="">All Personas</option>' +
-                            Object.entries(PERSONA_LABELS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
-                    }
-                });
+                // Load segments
+                const segRes = await fetch('/api/segments');
+                const segments = await segRes.json();
+                const segSelect = document.getElementById('segmentSelect');
+                if (segSelect && segments.length > 0) {
+                    segSelect.innerHTML = '<option value="">All Segments</option>' + segments.map(s => `<option value="${s}">${s}</option>`).join('');
+                }
             } catch (e) {
-                console.error('Failed to load brands:', e);
+                console.error('Brands error:', e);
             }
         }
-        
+
         async function loadModels(brand, selectId = 'modelSelect') {
             try {
                 const res = await fetch(`/api/models?brand=${encodeURIComponent(brand)}`);
-                const brandModels = await res.json();
-                
+                const data = await res.json();
                 const select = document.getElementById(selectId);
                 if (select) {
-                    select.innerHTML = '<option value="">Select Model</option>' + 
-                        brandModels.map(m => `<option value="${m.model}">${m.model}</option>`).join('');
+                    select.innerHTML = '<option value="">Select Model</option>' + data.map(m => `<option value="${m.model}">${m.model}</option>`).join('');
                 }
-                return brandModels;
             } catch (e) {
-                console.error('Failed to load models:', e);
-                return [];
+                console.error('Models error:', e);
             }
         }
-        
+
         function setupEventListeners() {
             // Apply buttons
             document.getElementById('applyBrandBtn').addEventListener('click', applyBrandView);
             document.getElementById('applyModelBtn').addEventListener('click', applyModelView);
             
-            // Model brand select - load models when brand changes
+            // Model brand select
             document.getElementById('modelBrandSelect').addEventListener('change', async (e) => {
-                if (e.target.value) {
-                    await loadModels(e.target.value, 'modelSelect');
-                }
+                if (e.target.value) await loadModels(e.target.value, 'modelSelect');
             });
             
-            // Compare brands button
+            // Compare buttons
             document.getElementById('runCompareBrandsBtn').addEventListener('click', () => runComparison('brand'));
-            
-            // Compare models button
             document.getElementById('runCompareModelsBtn').addEventListener('click', () => runComparison('model'));
             
-            // Model compare brand selects - load models when brand changes
+            // Model compare brand selects
             ['compareModelBrand1', 'compareModelBrand2', 'compareModelBrand3'].forEach((id, idx) => {
                 document.getElementById(id).addEventListener('change', async (e) => {
-                    if (e.target.value) {
-                        await loadModels(e.target.value, `compareModel${idx + 1}`);
-                    }
+                    if (e.target.value) await loadModels(e.target.value, `compareModel${idx + 1}`);
                 });
             });
             
             // Sub-tabs
             document.querySelectorAll('.sub-tab').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    // Update button styles
                     document.querySelectorAll('.sub-tab').forEach(b => {
                         b.classList.remove('active', 'bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
                         b.classList.add('text-gray-400');
@@ -812,1035 +506,265 @@
                     btn.classList.add('active', 'bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
                     btn.classList.remove('text-gray-400');
                     
-                    // Hide all tab panels, show selected
                     document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
                     document.getElementById(btn.dataset.tab + 'Tab').classList.remove('hidden');
-                    
-                    // Load data for specific tabs
-                    if (btn.dataset.tab === 'demographics') loadDemographics();
-                    if (btn.dataset.tab === 'rnd') loadRDInsights();
-                    if (btn.dataset.tab === 'satisfaction') loadSatisfaction();
                 });
             });
             
-            // Chat toggle
-            document.getElementById('chatToggle').addEventListener('click', openChat);
-            document.getElementById('chatClose').addEventListener('click', closeChat);
-            document.getElementById('chatCollapse').addEventListener('click', collapseChat);
-            document.getElementById('chatOverlay').addEventListener('click', closeChat);
-            
-            // Quick questions
-            document.querySelectorAll('.quick-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const q = btn.dataset.question;
-                    document.getElementById('chatInput').value = q;
-                });
+            // Chat
+            document.getElementById('chatToggle').addEventListener('click', () => {
+                document.getElementById('chatPanel').classList.add('open');
+                document.getElementById('chatOverlay').classList.remove('hidden');
+            });
+            document.getElementById('chatClose').addEventListener('click', () => {
+                document.getElementById('chatPanel').classList.remove('open');
+                document.getElementById('chatOverlay').classList.add('hidden');
+            });
+            document.getElementById('chatOverlay').addEventListener('click', () => {
+                document.getElementById('chatPanel').classList.remove('open');
+                document.getElementById('chatOverlay').classList.add('hidden');
             });
         }
-        
+
         // ═══════════════════════════════════════════
         // DATA LOADING
         // ═══════════════════════════════════════════
         async function loadAllData() {
             if (!currentBrand) return;
             
-            setLoading(true);
-            updateContextHeader();
+            document.getElementById('statOverall').textContent = '...';
+            document.getElementById('statStrength').textContent = 'Loading...';
+            document.getElementById('statWeakness').textContent = 'Loading...';
+            document.getElementById('statBuyerType').textContent = 'Loading...';
             
-            await Promise.all([
-                loadDrivers(),
-                loadSatisfaction(),
-                loadDemographics(),
-                loadRDInsights()
-            ]);
+            await Promise.all([loadDrivers(), loadSatisfaction(), loadDemographics(), loadRDInsights()]);
         }
-        
-        function updateContextHeader() {
-            const title = currentModel || currentBrand;
-            const vehicleLabel = config.vehicle_type === 'bike' ? 'Bike' : 'Car';
-            const subtitle = currentModel ? `${currentBrand} • ${vehicleLabel}` : 'Brand Overview';
-            
-            document.getElementById('contextTitle').textContent = title;
-            document.getElementById('contextSubtitle').textContent = subtitle;
-        }
-        
+
         async function loadDrivers() {
             try {
-                const params = new URLSearchParams(
-                    currentModel ? { model: currentModel } : { brand: currentBrand }
-                );
-                
+                const params = new URLSearchParams(currentModel ? { model: currentModel } : { brand: currentBrand });
                 const res = await fetch(`/api/drivers?${params}`);
                 const data = await res.json();
                 
                 if (data.length > 0) {
-                    // Update stats with raw counts
                     const totalMentions = data.reduce((s, d) => s + d.total_mentions, 0);
                     const totalPos = data.reduce((s, d) => s + d.positive_count, 0);
                     const totalNeg = data.reduce((s, d) => s + d.negative_count, 0);
                     
-                    // Show total mentions in main stat card
                     document.getElementById('statOverall').textContent = formatNumber(totalMentions);
                     document.getElementById('statMentions').textContent = `👍 ${formatNumber(totalPos)} / 👎 ${formatNumber(totalNeg)}`;
-                    document.getElementById('contextSatisfaction').textContent = formatNumber(totalPos) + ' 👍 / ' + formatNumber(totalNeg) + ' 👎';
-                    document.getElementById('contextMentions').textContent = formatNumber(totalMentions);
-                    document.getElementById('contextMeta').classList.remove('hidden');
                     
-                    // Sort by positive count for strength, negative count for weakness
                     const sortedByPos = [...data].sort((a, b) => b.positive_count - a.positive_count);
                     const sortedByNeg = [...data].sort((a, b) => b.negative_count - a.negative_count);
-                    const strength = sortedByPos[0];
-                    const weakness = sortedByNeg[0];
                     
-                    document.getElementById('statStrength').textContent = (ASPECT_ICONS[strength.aspect] || '') + ' ' + strength.aspect;
-                    document.getElementById('statStrengthScore').textContent = formatNumber(strength.positive_count) + ' positive';
-                    document.getElementById('statWeakness').textContent = (ASPECT_ICONS[weakness.aspect] || '') + ' ' + weakness.aspect;
-                    document.getElementById('statWeaknessScore').textContent = formatNumber(weakness.negative_count) + ' negative';
+                    document.getElementById('statStrength').textContent = (ASPECT_ICONS[sortedByPos[0].aspect] || '') + ' ' + sortedByPos[0].aspect;
+                    document.getElementById('statStrengthScore').textContent = formatNumber(sortedByPos[0].positive_count) + ' positive';
+                    document.getElementById('statWeakness').textContent = (ASPECT_ICONS[sortedByNeg[0].aspect] || '') + ' ' + sortedByNeg[0].aspect;
+                    document.getElementById('statWeaknessScore').textContent = formatNumber(sortedByNeg[0].negative_count) + ' negative';
                     
-                    // Calculate positive ratio for each aspect
-                    const withRatio = data.map(d => ({
-                        ...d,
-                        positiveRatio: d.positive_count / (d.positive_count + d.negative_count + 0.001)
-                    }));
+                    const withRatio = data.map(d => ({ ...d, positiveRatio: d.positive_count / (d.positive_count + d.negative_count + 0.001) }));
                     
-                    // Praises: aspects with > 50% positive ratio, sorted by positive count
-                    const praises = withRatio
-                        .filter(d => d.positiveRatio > 0.5)
-                        .sort((a, b) => b.positive_count - a.positive_count)
-                        .slice(0, 5);
-                    
+                    const praises = withRatio.filter(d => d.positiveRatio > 0.5).sort((a, b) => b.positive_count - a.positive_count).slice(0, 5);
                     document.getElementById('praisesContainer').innerHTML = praises.length > 0 
-                        ? praises.map(d => `
-                            <div class="flex items-center justify-between p-3 rounded-lg bg-green-500/10 border border-green-500/20 cursor-pointer hover:bg-green-500/20 transition" onclick="showSampleReviews('${d.aspect}', 'positive')">
-                                <div class="flex items-center gap-2">
-                                    <span>${ASPECT_ICONS[d.aspect] || '📊'}</span>
-                                    <span class="text-sm">${d.aspect}</span>
-                                </div>
-                                <div class="text-right">
-                                    <span class="text-green-400 font-semibold">${formatNumber(d.positive_count)}</span>
-                                    <span class="text-xs text-gray-500 ml-1">positive</span>
-                                </div>
-                            </div>
-                        `).join('')
-                        : '<p class="text-sm text-gray-500 text-center py-4">No strongly positive aspects</p>';
+                        ? praises.map(d => `<div class="flex items-center justify-between p-3 rounded-lg bg-green-500/10 border border-green-500/20"><div class="flex items-center gap-2"><span>${ASPECT_ICONS[d.aspect] || '📊'}</span><span class="text-sm">${d.aspect}</span></div><span class="text-green-400 font-semibold">${formatNumber(d.positive_count)}</span></div>`).join('')
+                        : '<p class="text-sm text-gray-500 text-center py-4">No data</p>';
                     
-                    // Concerns: aspects with <= 50% positive ratio, sorted by negative count
-                    const concerns = withRatio
-                        .filter(d => d.positiveRatio <= 0.5)
-                        .sort((a, b) => b.negative_count - a.negative_count)
-                        .slice(0, 5);
-                    
+                    const concerns = withRatio.filter(d => d.positiveRatio <= 0.5).sort((a, b) => b.negative_count - a.negative_count).slice(0, 5);
                     document.getElementById('concernsContainer').innerHTML = concerns.length > 0
-                        ? concerns.map(d => `
-                            <div class="flex items-center justify-between p-3 rounded-lg bg-red-500/10 border border-red-500/20 cursor-pointer hover:bg-red-500/20 transition" onclick="showSampleReviews('${d.aspect}', 'negative')">
-                                <div class="flex items-center gap-2">
-                                    <span>${ASPECT_ICONS[d.aspect] || '📊'}</span>
-                                    <span class="text-sm">${d.aspect}</span>
-                                </div>
-                                <div class="text-right">
-                                    <span class="text-red-400 font-semibold">${formatNumber(d.negative_count)}</span>
-                                    <span class="text-xs text-gray-500 ml-1">negative</span>
-                                </div>
-                            </div>
-                        `).join('')
-                        : '<p class="text-sm text-gray-500 text-center py-4">No concerning aspects</p>';
+                        ? concerns.map(d => `<div class="flex items-center justify-between p-3 rounded-lg bg-red-500/10 border border-red-500/20"><div class="flex items-center gap-2"><span>${ASPECT_ICONS[d.aspect] || '📊'}</span><span class="text-sm">${d.aspect}</span></div><span class="text-red-400 font-semibold">${formatNumber(d.negative_count)}</span></div>`).join('')
+                        : '<p class="text-sm text-gray-500 text-center py-4">No concerns</p>';
                     
                     renderSOVChart(data);
                 }
-            } catch (e) {
-                console.error('Failed to load drivers:', e);
-            }
+            } catch (e) { console.error('Drivers error:', e); }
         }
-        
-        async function loadRDInsights() {
-            try {
-                const params = new URLSearchParams(
-                    currentModel ? { model: currentModel } : { brand: currentBrand }
-                );
-                
-                const res = await fetch(`/api/rd-insights?${params}`);
-                const data = await res.json();
-                
-                // Filter to mentions > 5
-                const minMentions = 5;
-                
-                // Feature Requests (filtered)
-                const featureReqs = (data.categorized?.feature_requests || []).filter(f => f.mentions > minMentions);
-                document.getElementById('featureRequestsContainer').innerHTML = featureReqs.length > 0 
-                    ? featureReqs.map(f => `
-                        <div class="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-white/10 transition">
-                            <span class="text-sm text-gray-300 truncate flex-1">${f.feature}</span>
-                            <span class="text-xs text-purple-400 ml-2 whitespace-nowrap">${f.mentions}x</span>
-                        </div>
-                    `).join('')
-                    : '<p class="text-sm text-gray-500">No feature requests with &gt;5 mentions</p>';
-                
-                // Pain Points (filtered)
-                const painPoints = (data.categorized?.pain_points || []).filter(p => p.mentions > minMentions);
-                document.getElementById('painPointsContainer').innerHTML = painPoints.length > 0
-                    ? painPoints.map(p => `
-                        <div class="flex items-center justify-between p-2 rounded-lg bg-red-500/5 hover:bg-red-500/10 transition">
-                            <span class="text-sm text-gray-300 truncate flex-1">${p.feature}</span>
-                            <span class="text-xs text-red-400 ml-2 whitespace-nowrap">${p.mentions}x</span>
-                        </div>
-                    `).join('')
-                    : '<p class="text-sm text-gray-500">No pain points with &gt;5 mentions</p>';
-                
-                // All Signals (filtered)
-                const allSignals = (data.insights || []).filter(s => s.mentions > minMentions);
-                document.getElementById('rndTotalCount').textContent = `${allSignals.length} signals with >5 mentions`;
-                document.getElementById('allRndSignals').innerHTML = allSignals.length > 0
-                    ? allSignals.map(s => {
-                        const catColor = {
-                            'feature_request': 'border-purple-500/30 bg-purple-500/5',
-                            'pain_point': 'border-red-500/30 bg-red-500/5',
-                            'improvement': 'border-blue-500/30 bg-blue-500/5',
-                            'competitive': 'border-amber-500/30 bg-amber-500/5'
-                        }[s.category] || 'border-gray-500/30 bg-gray-500/5';
-                        return `
-                            <div class="p-2 rounded-lg border ${catColor} text-xs">
-                                <div class="text-gray-300 truncate" title="${s.feature}">${s.feature}</div>
-                                <div class="text-gray-500 mt-1">${s.mentions} mentions</div>
-                            </div>
-                        `;
-                    }).join('')
-                    : '<p class="text-sm text-gray-500 col-span-3">No R&D signals with &gt;5 mentions</p>';
-                
-            } catch (e) {
-                console.error('Failed to load R&D insights:', e);
-                document.getElementById('featureRequestsContainer').innerHTML = '<p class="text-sm text-red-400">Error loading data</p>';
-                document.getElementById('painPointsContainer').innerHTML = '<p class="text-sm text-red-400">Error loading data</p>';
-            }
-        }
-        
-        async function loadSatisfaction() {
-            try {
-                const params = new URLSearchParams(
-                    currentModel ? { model: currentModel } : { brand: currentBrand }
-                );
-                
-                const res = await fetch(`/api/satisfaction?${params}`);
-                const data = await res.json();
-                
-                renderSatisfactionTable(data);
-            } catch (e) {
-                console.error('Failed to load satisfaction:', e);
-            }
-        }
-        
-        function renderSatisfactionTable(data) {
-            if (!data || data.length === 0) {
-                document.getElementById('satisfactionTable').innerHTML = '<p class="text-gray-500 text-center py-4">No data available</p>';
-                return;
-            }
-            
-            // Sort by total mentions
-            const sorted = [...data].sort((a, b) => b.total_mentions - a.total_mentions);
-            
-            let html = `
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-white/10">
-                            <th class="text-left py-2 px-3 text-gray-400 font-medium">Aspect</th>
-                            <th class="text-right py-2 px-3 text-gray-400 font-medium">Total</th>
-                            <th class="text-right py-2 px-3 text-green-400 font-medium">👍 Positive</th>
-                            <th class="text-right py-2 px-3 text-red-400 font-medium">👎 Negative</th>
-                            <th class="text-right py-2 px-3 text-gray-400 font-medium">Net</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-            
-            for (const d of sorted) {
-                const net = d.positive_count - d.negative_count;
-                const netColor = net >= 0 ? 'text-green-400' : 'text-red-400';
-                const netSign = net >= 0 ? '+' : '';
-                
-                html += `
-                    <tr class="border-b border-white/5 hover:bg-white/5">
-                        <td class="py-2 px-3">
-                            <span class="mr-2">${ASPECT_ICONS[d.aspect] || '📊'}</span>${d.aspect}
-                        </td>
-                        <td class="text-right py-2 px-3 text-gray-300">${formatNumber(d.total_mentions)}</td>
-                        <td class="text-right py-2 px-3 text-green-400 cursor-pointer hover:underline" onclick="showSampleReviews('${d.aspect}', 'positive')">${formatNumber(d.positive_count)}</td>
-                        <td class="text-right py-2 px-3 text-red-400 cursor-pointer hover:underline" onclick="showSampleReviews('${d.aspect}', 'negative')">${formatNumber(d.negative_count)}</td>
-                        <td class="text-right py-2 px-3 font-semibold ${netColor}">${netSign}${formatNumber(net)}</td>
-                    </tr>
-                `;
-            }
-            
-            // Add totals row
-            const totalMentions = data.reduce((s, d) => s + d.total_mentions, 0);
-            const totalPos = data.reduce((s, d) => s + d.positive_count, 0);
-            const totalNeg = data.reduce((s, d) => s + d.negative_count, 0);
-            const totalNet = totalPos - totalNeg;
-            const totalNetColor = totalNet >= 0 ? 'text-green-400' : 'text-red-400';
-            
-            html += `
-                    <tr class="border-t border-white/20 bg-white/5 font-semibold">
-                        <td class="py-3 px-3 text-purple-400">TOTAL</td>
-                        <td class="text-right py-3 px-3 text-white">${formatNumber(totalMentions)}</td>
-                        <td class="text-right py-3 px-3 text-green-400">${formatNumber(totalPos)}</td>
-                        <td class="text-right py-3 px-3 text-red-400">${formatNumber(totalNeg)}</td>
-                        <td class="text-right py-3 px-3 ${totalNetColor}">${totalNet >= 0 ? '+' : ''}${formatNumber(totalNet)}</td>
-                    </tr>
-                </tbody>
-                </table>
-            `;
-            
-            document.getElementById('satisfactionTable').innerHTML = html;
-        }
-        
-        async function loadDemographics() {
-            try {
-                const params = new URLSearchParams(
-                    currentModel ? { model: currentModel } : { brand: currentBrand }
-                );
-                
-                const res = await fetch(`/api/demographics?${params}`);
-                const data = await res.json();
-                
-                // Update top buyer type stat
-                if (data.persona && data.persona.length > 0) {
-                    const top = data.persona[0];
-                    const total = data.persona.reduce((s, p) => s + p.count, 0);
-                    document.getElementById('statBuyerType').textContent = PERSONA_LABELS[top.persona] || top.persona;
-                    document.getElementById('statBuyerPct').textContent = Math.round(top.count * 100 / total) + '% of buyers';
-                }
-                
-                renderPersonaChart(data.persona);
-                renderIntentChart(data.intent);
-                renderGenderChart(data.gender);
-            } catch (e) {
-                console.error('Failed to load demographics:', e);
-            }
-        }
-        
-        // ═══════════════════════════════════════════
-        // COMPARISON - Matching Hotels Exactly
-        // ═══════════════════════════════════════════
-        async function runComparison(compareType) {
-            let items = [];
-            let persona, gender;
-            
-            if (compareType === 'brand') {
-                items = [
-                    document.getElementById('compareBrand1').value,
-                    document.getElementById('compareBrand2').value,
-                    document.getElementById('compareBrand3').value
-                ].filter(v => v);
-                persona = document.getElementById('comparePersona').value;
-                gender = document.getElementById('compareGender').value;
-            } else {
-                items = [
-                    document.getElementById('compareModel1').value,
-                    document.getElementById('compareModel2').value,
-                    document.getElementById('compareModel3').value
-                ].filter(v => v);
-                persona = document.getElementById('compareModelsPersona').value;
-                gender = document.getElementById('compareModelsGender').value;
-            }
-            
-            if (items.length < 2) {
-                alert(`Please select at least 2 ${compareType === 'brand' ? 'brands' : 'models'} to compare`);
-                return;
-            }
-            
-            // Show mainContent with comparisonTab
-            document.getElementById('mainContent').classList.remove('hidden');
-            document.getElementById('statsRow').classList.add('hidden');
-            document.getElementById('subTabsRow').classList.add('hidden');
-            
-            // Show only comparisonTab
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
-            document.getElementById('comparisonTab').classList.remove('hidden');
-            
-            // Show loading
-            document.getElementById('satisfactionScoreTable').innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500"></div></div>';
-            document.getElementById('driverAnalysisTable').innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500"></div></div>';
-            document.getElementById('correspondenceChart').innerHTML = '<div class="text-center py-8 col-span-3"><div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500"></div></div>';
-            
-            const btn = compareType === 'brand' ? document.getElementById('runCompareBrandsBtn') : document.getElementById('runCompareModelsBtn');
-            btn.disabled = true;
-            btn.textContent = 'Loading...';
-            
-            try {
-                const params = new URLSearchParams({
-                    items: items.join(','),
-                    compare_by: compareType,
-                    ...(persona ? { persona } : {}),
-                    ...(gender ? { gender } : {})
-                });
-                
-                const res = await fetch(`/api/comparison?${params}`);
-                const data = await res.json();
-                
-                renderComparison(items, data);
-            } catch (e) {
-                console.error('Comparison error:', e);
-                document.getElementById('satisfactionScoreTable').innerHTML = '<p class="text-red-400 text-center py-4">Error loading comparison</p>';
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Compare';
-            }
-        }
-        
-        function renderComparison(items, data) {
-            // Get all aspects
-            const aspectSet = new Set();
-            items.forEach(item => {
-                (data[item]?.aspects || []).forEach(a => aspectSet.add(a.aspect_name || a.aspect));
-            });
-            const aspects = Array.from(aspectSet).sort();
-            
-            // Calculate item stats with raw counts
-            const itemStats = items.map(item => {
-                const d = data[item]?.overall || {};
-                const pos = d.positive || 0;
-                const neg = d.negative || 0;
-                const total = d.total_mentions || 1;
-                return {
-                    item,
-                    totalMentions: total,
-                    posCount: pos,
-                    negCount: neg,
-                    netSentiment: pos - neg
-                };
-            });
-            
-            // Helper functions
-            const getNameSizeClass = (name) => {
-                if (name.length <= 12) return 'short';
-                if (name.length <= 25) return 'medium';
-                return 'long';
-            };
-            
-            const getItemHeader = (item, idx) => `
-                <th class="item-col">
-                    <div class="item-header">
-                        <div class="dot" style="background: ${itemColors[idx]}"></div>
-                        <div class="name ${getNameSizeClass(item)}">${item}</div>
-                    </div>
-                </th>
-            `;
-            
-            // Helper to get heat class based on positive ratio
-            const getRatioHeatClass = (ratio) => {
-                if (ratio >= 0.8) return 'heat-vhigh';
-                if (ratio >= 0.6) return 'heat-high';
-                if (ratio >= 0.4) return 'heat-med';
-                if (ratio >= 0.2) return 'heat-low';
-                return 'heat-vlow';
-            };
-            
-            // 1. Satisfaction Score Table
-            let satHtml = `
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Metric</th>
-                            ${items.map((item, i) => getItemHeader(item, i)).join('')}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="text-gray-300 font-medium">Total Mentions</td>
-                            ${itemStats.map(s => `<td><span class="heat-cell heat-high">${formatNumber(s.totalMentions)}</span></td>`).join('')}
-                        </tr>
-                        <tr>
-                            <td class="text-gray-300 font-medium">👍 Positive</td>
-                            ${itemStats.map(s => `<td><span class="text-green-400 font-medium">${formatNumber(s.posCount)}</span></td>`).join('')}
-                        </tr>
-                        <tr>
-                            <td class="text-gray-300 font-medium">👎 Negative</td>
-                            ${itemStats.map(s => `<td><span class="text-red-400 font-medium">${formatNumber(s.negCount)}</span></td>`).join('')}
-                        </tr>
-                        <tr>
-                            <td class="text-gray-300 font-medium">Positive Ratio</td>
-                            ${itemStats.map(s => {
-                                const ratio = (s.posCount + s.negCount) > 0 ? s.posCount / (s.posCount + s.negCount) : 0;
-                                return `<td><span class="heat-cell ${getRatioHeatClass(ratio)}">${Math.round(ratio * 100)}%</span></td>`;
-                            }).join('')}
-                        </tr>
-                    </tbody>
-                </table>
-            `;
-            document.getElementById('satisfactionScoreTable').innerHTML = satHtml;
-            
-            // 2. Driver Analysis Table (Aspect breakdown)
-            let driverHtml = `
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Aspect</th>
-                            ${items.map((item, i) => getItemHeader(item, i)).join('')}
-                            <th class="text-center" style="width: 80px;">Winner</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-            
-            for (const aspect of aspects) {
-                const aspectInfo = items.map(item => {
-                    const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
-                    const pos = aspectData?.positive_count || 0;
-                    const neg = aspectData?.negative_count || 0;
-                    const mentions = aspectData?.total_mentions || 0;
-                    const ratio = (pos + neg) > 0 ? pos / (pos + neg) : 0;
-                    return { posCount: pos, negCount: neg, mentions, ratio };
-                });
-                
-                const validScores = aspectInfo.filter(a => a.mentions >= 5);
-                if (validScores.length === 0) continue;
-                
-                const ratios = aspectInfo.map(a => a.mentions >= 5 ? a.ratio : -1);
-                const maxRatio = Math.max(...ratios.filter(r => r >= 0));
-                const winnerIdx = ratios.indexOf(maxRatio);
-                const winner = maxRatio >= 0 ? items[winnerIdx] : '-';
-                
-                driverHtml += `<tr><td class="text-gray-300 font-medium">${ASPECT_ICONS[aspect] || ''} ${aspect}</td>`;
-                aspectInfo.forEach((info, idx) => {
-                    if (info.mentions < 5) {
-                        driverHtml += `<td><span class="heat-cell heat-neutral">--</span></td>`;
-                    } else {
-                        const isWinner = info.ratio === maxRatio;
-                        driverHtml += `<td class="${isWinner ? 'winner-cell rounded' : ''}">
-                            <span class="heat-cell ${getRatioHeatClass(info.ratio)}">${Math.round(info.ratio * 100)}%</span>
-                        </td>`;
-                    }
-                });
-                driverHtml += `<td class="text-purple-400 font-medium text-sm">${winner}</td></tr>`;
-            }
-            
-            driverHtml += `</tbody></table>`;
-            document.getElementById('driverAnalysisTable').innerHTML = driverHtml;
-            
-            // 3. Attribute Wins Section
-            const wins = {};
-            items.forEach(item => { wins[item] = []; });
-            
-            for (const aspect of aspects) {
-                const scores = items.map(item => {
-                    const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
-                    const pos = aspectData?.positive_count || 0;
-                    const neg = aspectData?.negative_count || 0;
-                    const mentions = aspectData?.total_mentions || 0;
-                    const ratio = (pos + neg) > 0 ? pos / (pos + neg) : 0;
-                    return { item, ratio: mentions >= 5 ? ratio : -1, mentions };
-                });
-                const validScores = scores.filter(s => s.ratio >= 0);
-                if (validScores.length === 0) continue;
-                
-                const maxRatio = Math.max(...validScores.map(s => s.ratio));
-                const winner = validScores.find(s => s.ratio === maxRatio);
-                if (winner) wins[winner.item].push(aspect);
-            }
-            
-            let winsHtml = '';
-            items.forEach((item, i) => {
-                const itemWins = wins[item] || [];
-                winsHtml += `
-                    <div class="wins-column">
-                        <h4 class="flex items-center gap-2">
-                            <span class="inline-block w-3 h-3 rounded-full flex-shrink-0" style="background: ${itemColors[i]}"></span>
-                            <span class="truncate">${item}</span>
-                            <span class="text-gray-500 flex-shrink-0">(${itemWins.length})</span>
-                        </h4>
-                        ${itemWins.length > 0 
-                            ? itemWins.map(aspect => `<div class="win-item"><span class="aspect">${ASPECT_ICONS[aspect] || ''} ${aspect}</span></div>`).join('')
-                            : '<p class="text-xs text-gray-500 mt-2">No winning attributes</p>'
-                        }
-                    </div>
-                `;
-            });
-            document.getElementById('correspondenceChart').innerHTML = winsHtml;
-        }
-        
-        // ═══════════════════════════════════════════
-        // CHARTS
-        // ═══════════════════════════════════════════
+
         function renderSOVChart(data) {
             if (charts.sov) charts.sov.destroy();
-            
-            // Store aspect data for click handler
-            window.sovAspects = data.map(d => d.aspect);
-            
+            const sorted = [...data].sort((a, b) => b.share_of_voice - a.share_of_voice).slice(0, 10);
             const options = {
-                series: [{
-                    data: data.map(d => d.share_of_voice)
-                }],
-                chart: { 
-                    type: 'bar', 
-                    height: 350, 
-                    toolbar: { show: false }, 
-                    background: 'transparent',
-                    events: {
-                        dataPointSelection: function(event, chartContext, config) {
-                            const aspect = window.sovAspects[config.dataPointIndex];
-                            showSampleReviews(aspect, 'all');
-                        }
-                    }
-                },
+                series: [{ data: sorted.map(d => d.share_of_voice) }],
+                chart: { type: 'bar', height: 350, background: 'transparent', toolbar: { show: false } },
                 plotOptions: { bar: { horizontal: true, borderRadius: 4 } },
                 colors: ['#667eea'],
-                xaxis: { 
-                    categories: data.map(d => (ASPECT_ICONS[d.aspect] || '') + ' ' + d.aspect),
-                    labels: { style: { colors: '#94a3b8' } }
-                },
-                yaxis: { labels: { style: { colors: '#e2e8f0' } } },
-                dataLabels: { enabled: true, formatter: v => v + '%', style: { colors: ['#fff'] } },
-                tooltip: { 
-                    theme: 'dark',
-                    custom: function({ series, seriesIndex, dataPointIndex, w }) {
-                        const aspect = window.sovAspects[dataPointIndex];
-                        const value = series[seriesIndex][dataPointIndex];
-                        return `<div class="px-3 py-2 bg-gray-800 rounded text-sm">
-                            <div class="font-medium">${aspect}</div>
-                            <div class="text-gray-400">Share of Voice: ${value}%</div>
-                            <div class="text-xs text-purple-400 mt-1">Click to see reviews →</div>
-                        </div>`;
-                    }
-                },
-                grid: { borderColor: 'rgba(255,255,255,0.1)' },
-                states: {
-                    hover: { filter: { type: 'lighten', value: 0.1 } }
-                }
+                xaxis: { categories: sorted.map(d => d.aspect) },
+                yaxis: { labels: { style: { colors: '#94a3b8' } } },
+                grid: { borderColor: 'rgba(255,255,255,0.05)' },
+                theme: { mode: 'dark' }
             };
-            
             charts.sov = new ApexCharts(document.getElementById('sovChart'), options);
             charts.sov.render();
         }
-        
-        function renderSatisfactionChart(data) {
-            if (charts.satisfaction) charts.satisfaction.destroy();
-            
-            const sorted = [...data].sort((a, b) => b.satisfaction - a.satisfaction);
-            
-            // Store aspect data for click handler
-            window.satisfactionAspects = sorted.map(d => d.aspect);
-            
-            const options = {
-                series: [{
-                    name: 'Positive',
-                    data: sorted.map(d => d.positive_count)
-                }, {
-                    name: 'Negative',
-                    data: sorted.map(d => -d.negative_count)
-                }],
-                chart: { 
-                    type: 'bar', 
-                    height: 400, 
-                    stacked: true, 
-                    toolbar: { show: false }, 
-                    background: 'transparent',
-                    events: {
-                        dataPointSelection: function(event, chartContext, config) {
-                            const aspectIndex = config.dataPointIndex;
-                            const aspect = window.satisfactionAspects[aspectIndex];
-                            const sentiment = config.seriesIndex === 0 ? 'positive' : 'negative';
-                            showSampleReviews(aspect, sentiment);
-                        }
-                    }
-                },
-                colors: ['#10b981', '#ef4444'],
-                plotOptions: { bar: { horizontal: true, borderRadius: 4 } },
-                xaxis: { 
-                    categories: sorted.map(d => (ASPECT_ICONS[d.aspect] || '') + ' ' + d.aspect),
-                    labels: { 
-                        style: { colors: '#94a3b8' },
-                        formatter: v => Math.abs(v)
-                    }
-                },
-                yaxis: { labels: { style: { colors: '#e2e8f0' } } },
-                tooltip: { 
-                    theme: 'dark',
-                    y: { formatter: v => Math.abs(v) + ' mentions' },
-                    custom: function({ series, seriesIndex, dataPointIndex, w }) {
-                        const aspect = window.satisfactionAspects[dataPointIndex];
-                        const value = Math.abs(series[seriesIndex][dataPointIndex]);
-                        const type = seriesIndex === 0 ? 'Positive' : 'Negative';
-                        return `<div class="px-3 py-2 bg-gray-800 rounded text-sm">
-                            <div class="font-medium">${aspect}</div>
-                            <div class="text-gray-400">${type}: ${value} mentions</div>
-                            <div class="text-xs text-purple-400 mt-1">Click to see reviews →</div>
-                        </div>`;
-                    }
-                },
-                legend: { labels: { colors: '#e2e8f0' } },
-                grid: { borderColor: 'rgba(255,255,255,0.1)' },
-                states: {
-                    hover: { filter: { type: 'lighten', value: 0.1 } },
-                    active: { filter: { type: 'darken', value: 0.2 } }
-                }
-            };
-            
-            charts.satisfaction = new ApexCharts(document.getElementById('satisfactionChart'), options);
-            charts.satisfaction.render();
-        }
-        
-        function renderPersonaChart(data) {
-            if (charts.persona) charts.persona.destroy();
-            
-            if (!data || data.length === 0) {
-                document.getElementById('personaChart').innerHTML = '<p class="text-gray-500 text-center py-8">No data available</p>';
-                return;
-            }
-            
-            const chartData = data.slice(0, 6);
-            const total = chartData.reduce((sum, d) => sum + d.count, 0);
-            
-            const options = {
-                series: chartData.map(d => d.count),
-                labels: chartData.map(d => {
-                    const label = PERSONA_LABELS[d.persona] || d.persona;
-                    const pct = Math.round(d.count * 100 / total);
-                    return `${label} (${pct}%)`;
-                }),
-                chart: { type: 'donut', height: 280, background: 'transparent' },
-                colors: cbSafePalette,
-                legend: { 
-                    position: 'bottom', 
-                    labels: { colors: '#e2e8f0' },
-                    fontSize: '11px',
-                    markers: { width: 10, height: 10, radius: 2 }
-                },
-                dataLabels: { 
-                    enabled: true,
-                    formatter: (val) => Math.round(val) + '%',
-                    style: { fontSize: '11px', colors: ['#fff'] }
-                },
-                tooltip: { 
-                    theme: 'dark',
-                    y: { formatter: (val) => formatNumber(val) + ' mentions' }
-                },
-                plotOptions: {
-                    pie: {
-                        donut: {
-                            size: '55%',
-                            labels: {
-                                show: true,
-                                total: { 
-                                    show: true, 
-                                    label: 'Total', 
-                                    color: '#9ca3af',
-                                    formatter: () => formatNumber(total)
-                                }
-                            }
-                        }
-                    }
-                }
-            };
-            
-            charts.persona = new ApexCharts(document.getElementById('personaChart'), options);
-            charts.persona.render();
-        }
-        
-        function renderIntentChart(data) {
-            if (charts.intent) charts.intent.destroy();
-            
-            if (!data || data.length === 0) {
-                document.getElementById('intentChart').innerHTML = '<p class="text-gray-500 text-center py-8">No data available</p>';
-                return;
-            }
-            
-            const intentLabels = {
-                'considering': 'Considering',
-                'bought': 'Bought',
-                'owns': 'Owns',
-                'rejected': 'Rejected',
-                'recommending': 'Recommending',
-                'warning': 'Warning'
-            };
-            
-            const chartData = data.slice(0, 6);
-            const total = chartData.reduce((sum, d) => sum + d.count, 0);
-            
-            const options = {
-                series: chartData.map(d => d.count),
-                labels: chartData.map(d => {
-                    const label = intentLabels[d.intent] || d.intent;
-                    const pct = Math.round(d.count * 100 / total);
-                    return `${label} (${pct}%)`;
-                }),
-                chart: { type: 'donut', height: 280, background: 'transparent' },
-                colors: cbSafePalette,
-                legend: { 
-                    position: 'bottom', 
-                    labels: { colors: '#e2e8f0' },
-                    fontSize: '11px',
-                    markers: { width: 10, height: 10, radius: 2 }
-                },
-                dataLabels: { 
-                    enabled: true,
-                    formatter: (val) => Math.round(val) + '%',
-                    style: { fontSize: '11px', colors: ['#fff'] }
-                },
-                tooltip: { 
-                    theme: 'dark',
-                    y: { formatter: (val) => formatNumber(val) + ' mentions' }
-                },
-                plotOptions: {
-                    pie: {
-                        donut: {
-                            size: '55%',
-                            labels: {
-                                show: true,
-                                total: { 
-                                    show: true, 
-                                    label: 'Total', 
-                                    color: '#9ca3af',
-                                    formatter: () => formatNumber(total)
-                                }
-                            }
-                        }
-                    }
-                }
-            };
-            
-            charts.intent = new ApexCharts(document.getElementById('intentChart'), options);
-            charts.intent.render();
-        }
-        
-        function renderGenderChart(data) {
-            if (charts.gender) charts.gender.destroy();
-            
-            if (!data || data.length === 0) {
-                document.getElementById('genderChart').innerHTML = '<p class="text-gray-500 text-center py-8">No data available</p>';
-                return;
-            }
-            
-            const total = data.reduce((sum, d) => sum + d.count, 0);
-            
-            const options = {
-                series: data.map(d => d.count),
-                labels: data.map(d => {
-                    const label = d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : 'Unknown';
-                    const pct = Math.round(d.count * 100 / total);
-                    return `${label} (${pct}%)`;
-                }),
-                chart: { type: 'donut', height: 280, background: 'transparent' },
-                colors: cbSafePalette,
-                legend: { 
-                    position: 'bottom', 
-                    labels: { colors: '#e2e8f0' },
-                    fontSize: '11px',
-                    markers: { width: 10, height: 10, radius: 2 }
-                },
-                dataLabels: { 
-                    enabled: true,
-                    formatter: (val) => Math.round(val) + '%',
-                    style: { fontSize: '11px', colors: ['#fff'] }
-                },
-                tooltip: { 
-                    theme: 'dark',
-                    y: { formatter: (val) => formatNumber(val) + ' mentions' }
-                },
-                plotOptions: {
-                    pie: {
-                        donut: {
-                            size: '55%',
-                            labels: {
-                                show: true,
-                                total: { 
-                                    show: true, 
-                                    label: 'Total', 
-                                    color: '#9ca3af',
-                                    formatter: () => formatNumber(total)
-                                }
-                            }
-                        }
-                    }
-                }
-            };
-            
-            charts.gender = new ApexCharts(document.getElementById('genderChart'), options);
-            charts.gender.render();
-        }
-        
-        // ═══════════════════════════════════════════
-        // HELPERS
-        // ═══════════════════════════════════════════
-        function showTab(tabName) {
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
-            document.getElementById(tabName + 'Tab').classList.remove('hidden');
-            
-            document.querySelectorAll('.tab-btn').forEach(b => {
-                b.classList.remove('active');
-                b.classList.add('text-gray-400');
-            });
-            event.target.classList.add('active');
-            event.target.classList.remove('text-gray-400');
-        }
-        
-        function getHeatClass(value) {
-            if (value >= 80) return 'heat-vhigh';
-            if (value >= 65) return 'heat-high';
-            if (value >= 45) return 'heat-med';
-            if (value >= 30) return 'heat-low';
-            return 'heat-vlow';
-        }
-        
-        function getSovHeatClass(value) {
-            if (value >= 25) return 'heat-vhigh';
-            if (value >= 15) return 'heat-high';
-            if (value >= 8) return 'heat-med';
-            if (value >= 3) return 'heat-low';
-            return 'heat-vlow';
-        }
-        
-        function getHeatClassInverse(value) {
-            if (value <= 20) return 'heat-vhigh';
-            if (value <= 30) return 'heat-high';
-            if (value <= 40) return 'heat-med';
-            return 'heat-low';
-        }
-        
-        function formatNumber(num) {
-            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(0) + 'k';
-            return num.toLocaleString();
-        }
-        
-        // ═══════════════════════════════════════════
-        // CHAT
-        // ═══════════════════════════════════════════
-        function openChat() {
-            document.getElementById('chatPanel').classList.add('open');
-            document.getElementById('chatPanel').classList.remove('collapsed');
-            document.getElementById('chatOverlay').classList.remove('hidden');
-        }
-        
-        function closeChat() {
-            document.getElementById('chatPanel').classList.remove('open');
-            document.getElementById('chatOverlay').classList.add('hidden');
-        }
-        
-        function collapseChat() {
-            document.getElementById('chatPanel').classList.add('collapsed');
-        }
-        
-        function expandChat() {
-            document.getElementById('chatPanel').classList.remove('collapsed');
-        }
-        
-        // ═══════════════════════════════════════════
-        // SAMPLE REVIEWS MODAL
-        // ═══════════════════════════════════════════
-        let currentReviewsAspect = null;
-        let currentReviewsFilter = 'all';
-        
-        async function showSampleReviews(aspect, sentiment = 'all') {
-            if (!currentBrand && !currentModel) return;
-            
-            currentReviewsAspect = aspect;
-            currentReviewsFilter = sentiment;
-            
-            // Update modal title
-            const target = currentModel || currentBrand;
-            document.getElementById('reviewsModalTitle').textContent = `${ASPECT_ICONS[aspect] || ''} ${aspect} - Sample Reviews`;
-            document.getElementById('reviewsModalSubtitle').textContent = `What ${target} buyers are saying about ${aspect}`;
-            
-            // Show modal with loading state
-            document.getElementById('reviewsModal').classList.remove('hidden');
-            document.getElementById('reviewsModalContent').innerHTML = `
-                <div class="text-center py-8">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500 mb-4"></div>
-                    <p class="text-gray-400">Loading reviews...</p>
-                </div>
-            `;
-            
-            // Update filter buttons
-            updateReviewFilterButtons(sentiment);
-            
+
+        async function loadSatisfaction() {
             try {
-                const params = new URLSearchParams({
-                    aspect: aspect,
-                    sentiment: sentiment,
-                    limit: 8,
-                    ...(currentModel ? { model: currentModel } : { brand: currentBrand })
-                });
-                
-                const res = await fetch(`/api/sample-reviews?${params}`);
+                const params = new URLSearchParams(currentModel ? { model: currentModel } : { brand: currentBrand });
+                const res = await fetch(`/api/satisfaction?${params}`);
                 const data = await res.json();
                 
-                renderReviews(data.reviews, aspect);
-            } catch (e) {
-                console.error('Failed to load reviews:', e);
-                document.getElementById('reviewsModalContent').innerHTML = `
-                    <div class="text-center py-8 text-red-400">
-                        <p>Failed to load reviews</p>
-                        <p class="text-xs text-gray-500 mt-2">${e.message}</p>
-                    </div>
-                `;
-            }
-        }
-        
-        function renderReviews(reviews, aspect) {
-            if (!reviews || reviews.length === 0) {
-                document.getElementById('reviewsModalContent').innerHTML = `
-                    <div class="text-center py-8 text-gray-500">
-                        <p>No reviews found for this aspect</p>
-                        <p class="text-xs mt-2">Try selecting a different filter or aspect</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            let html = '';
-            reviews.forEach(review => {
-                const sentimentColor = review.sentiment === 'positive' ? 'border-green-500/30 bg-green-500/5' : 
-                                       review.sentiment === 'negative' ? 'border-red-500/30 bg-red-500/5' : 
-                                       'border-gray-500/30 bg-gray-500/5';
-                const sentimentIcon = review.sentiment === 'positive' ? '👍' : 
-                                      review.sentiment === 'negative' ? '👎' : '➖';
-                
-                html += `
-                    <div class="border ${sentimentColor} rounded-xl p-4">
-                        <div class="flex items-start gap-3">
-                            <span class="text-lg">${sentimentIcon}</span>
-                            <div class="flex-1">
-                                <p class="text-sm text-gray-200 leading-relaxed">${escapeHtml(review.text)}</p>
-                                <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                                    <span>${review.model || review.brand}</span>
-                                    ${review.subreddit ? `<span>r/${review.subreddit}</span>` : ''}
-                                    ${review.date ? `<span>${review.date}</span>` : ''}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            document.getElementById('reviewsModalContent').innerHTML = html;
-        }
-        
-        function filterReviews(sentiment) {
-            if (currentReviewsAspect) {
-                showSampleReviews(currentReviewsAspect, sentiment);
-            }
-        }
-        
-        function updateReviewFilterButtons(active) {
-            const buttons = ['All', 'Positive', 'Negative'];
-            buttons.forEach(btn => {
-                const el = document.getElementById(`reviewsFilter${btn}`);
-                if (btn.toLowerCase() === active) {
-                    el.className = 'px-3 py-1 rounded-full text-xs bg-purple-500/30 text-purple-300';
-                } else {
-                    el.className = 'px-3 py-1 rounded-full text-xs bg-white/5 text-gray-400 hover:bg-white/10';
+                if (data.length > 0) {
+                    let html = '<table class="data-table"><thead><tr><th>Aspect</th><th>Positive</th><th>Negative</th><th>Total</th></tr></thead><tbody>';
+                    data.forEach(d => {
+                        html += `<tr><td class="text-gray-300">${ASPECT_ICONS[d.aspect] || ''} ${d.aspect}</td><td class="text-green-400">${formatNumber(d.positive_count)}</td><td class="text-red-400">${formatNumber(d.negative_count)}</td><td>${formatNumber(d.total_mentions)}</td></tr>`;
+                    });
+                    html += '</tbody></table>';
+                    document.getElementById('satisfactionTable').innerHTML = html;
                 }
+            } catch (e) { console.error('Satisfaction error:', e); }
+        }
+
+        async function loadDemographics() {
+            try {
+                const params = new URLSearchParams(currentModel ? { model: currentModel } : { brand: currentBrand });
+                const res = await fetch(`/api/demographics?${params}`);
+                const data = await res.json();
+                
+                if (data.persona && data.persona.length > 0) {
+                    const topPersona = data.persona[0];
+                    document.getElementById('statBuyerType').textContent = topPersona.persona || 'N/A';
+                    document.getElementById('statBuyerPct').textContent = topPersona.percentage ? topPersona.percentage + '%' : '';
+                    
+                    if (charts.persona) charts.persona.destroy();
+                    charts.persona = new ApexCharts(document.getElementById('personaChart'), {
+                        series: data.persona.map(p => p.count),
+                        labels: data.persona.map(p => p.persona),
+                        chart: { type: 'donut', height: 300, background: 'transparent' },
+                        colors: ['#667eea', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'],
+                        theme: { mode: 'dark' },
+                        legend: { position: 'bottom', labels: { colors: '#94a3b8' } }
+                    });
+                    charts.persona.render();
+                }
+                
+                if (data.gender && data.gender.length > 0) {
+                    if (charts.gender) charts.gender.destroy();
+                    charts.gender = new ApexCharts(document.getElementById('genderChart'), {
+                        series: data.gender.map(g => g.count),
+                        labels: data.gender.map(g => g.gender === 'M' ? 'Male' : g.gender === 'F' ? 'Female' : 'Unknown'),
+                        chart: { type: 'donut', height: 300, background: 'transparent' },
+                        colors: ['#3b82f6', '#ec4899', '#6b7280'],
+                        theme: { mode: 'dark' },
+                        legend: { position: 'bottom', labels: { colors: '#94a3b8' } }
+                    });
+                    charts.gender.render();
+                }
+            } catch (e) { console.error('Demographics error:', e); }
+        }
+
+        async function loadRDInsights() {
+            try {
+                const params = new URLSearchParams(currentModel ? { model: currentModel } : { brand: currentBrand });
+                const res = await fetch(`/api/rd-insights?${params}`);
+                const data = await res.json();
+                
+                if (data.feature_requests) {
+                    document.getElementById('featureRequestsContainer').innerHTML = data.feature_requests.length > 0
+                        ? data.feature_requests.map(f => `<div class="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20"><div class="text-sm">${f.text}</div><div class="text-xs text-gray-500 mt-1">${f.count || ''} mentions</div></div>`).join('')
+                        : '<p class="text-gray-500 text-center py-4">No feature requests found</p>';
+                }
+                
+                if (data.pain_points) {
+                    document.getElementById('painPointsContainer').innerHTML = data.pain_points.length > 0
+                        ? data.pain_points.map(p => `<div class="p-3 rounded-lg bg-red-500/10 border border-red-500/20"><div class="text-sm">${p.text}</div><div class="text-xs text-gray-500 mt-1">${p.count || ''} mentions</div></div>`).join('')
+                        : '<p class="text-gray-500 text-center py-4">No pain points found</p>';
+                }
+            } catch (e) { console.error('R&D error:', e); }
+        }
+
+        // ═══════════════════════════════════════════
+        // COMPARISON
+        // ═══════════════════════════════════════════
+        async function runComparison(compareType) {
+            let items = [];
+            if (compareType === 'brand') {
+                items = ['compareBrand1', 'compareBrand2', 'compareBrand3'].map(id => document.getElementById(id).value).filter(v => v);
+            } else {
+                items = ['compareModel1', 'compareModel2', 'compareModel3'].map(id => document.getElementById(id).value).filter(v => v);
+            }
+            
+            if (items.length < 2) { alert('Select at least 2 items to compare'); return; }
+            
+            document.getElementById('mainContent').classList.remove('hidden');
+            document.getElementById('statsRow').classList.add('hidden');
+            document.getElementById('subTabsRow').classList.add('hidden');
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById('comparisonTab').classList.remove('hidden');
+            
+            document.getElementById('satisfactionScoreTable').innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500"></div></div>';
+            
+            try {
+                const params = new URLSearchParams({ items: items.join(','), compare_by: compareType });
+                const res = await fetch(`/api/comparison?${params}`);
+                const data = await res.json();
+                renderComparison(items, data);
+            } catch (e) {
+                console.error('Comparison error:', e);
+                document.getElementById('satisfactionScoreTable').innerHTML = '<p class="text-red-400 text-center">Error loading comparison</p>';
+            }
+        }
+
+        function renderComparison(items, data) {
+            const aspects = new Set();
+            items.forEach(item => (data[item]?.aspects || []).forEach(a => aspects.add(a.aspect_name || a.aspect)));
+            
+            const getRatioClass = (r) => r >= 0.8 ? 'heat-vhigh' : r >= 0.6 ? 'heat-high' : r >= 0.4 ? 'heat-med' : r >= 0.2 ? 'heat-low' : 'heat-vlow';
+            const getHeader = (item, i) => `<th class="item-col"><div class="item-header"><div class="dot" style="background:${itemColors[i]}"></div><div class="name">${item}</div></div></th>`;
+            
+            // Satisfaction Score Table
+            const stats = items.map(item => {
+                const d = data[item]?.overall || {};
+                return { pos: d.positive || 0, neg: d.negative || 0, total: d.total_mentions || 0 };
             });
-        }
-        
-        function closeReviewsModal() {
-            document.getElementById('reviewsModal').classList.add('hidden');
-            currentReviewsAspect = null;
-        }
-        
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+            
+            let satHtml = `<table class="data-table"><thead><tr><th>Metric</th>${items.map((it, i) => getHeader(it, i)).join('')}</tr></thead><tbody>`;
+            satHtml += `<tr><td class="text-gray-300">Total Mentions</td>${stats.map(s => `<td><span class="heat-cell heat-high">${formatNumber(s.total)}</span></td>`).join('')}</tr>`;
+            satHtml += `<tr><td class="text-gray-300">👍 Positive</td>${stats.map(s => `<td class="text-green-400">${formatNumber(s.pos)}</td>`).join('')}</tr>`;
+            satHtml += `<tr><td class="text-gray-300">👎 Negative</td>${stats.map(s => `<td class="text-red-400">${formatNumber(s.neg)}</td>`).join('')}</tr>`;
+            satHtml += `<tr><td class="text-gray-300">Positive Ratio</td>${stats.map(s => { const r = s.pos / (s.pos + s.neg + 0.001); return `<td><span class="heat-cell ${getRatioClass(r)}">${Math.round(r * 100)}%</span></td>`; }).join('')}</tr>`;
+            satHtml += '</tbody></table>';
+            document.getElementById('satisfactionScoreTable').innerHTML = satHtml;
+            
+            // Driver Analysis
+            let driverHtml = `<table class="data-table"><thead><tr><th>Aspect</th>${items.map((it, i) => getHeader(it, i)).join('')}<th>Winner</th></tr></thead><tbody>`;
+            Array.from(aspects).sort().forEach(aspect => {
+                const info = items.map(item => {
+                    const ad = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
+                    const pos = ad?.positive_count || 0, neg = ad?.negative_count || 0;
+                    return { pos, neg, ratio: pos / (pos + neg + 0.001) };
+                });
+                const maxRatio = Math.max(...info.map(i => i.ratio));
+                const winner = items[info.findIndex(i => i.ratio === maxRatio)];
+                driverHtml += `<tr><td class="text-gray-300">${ASPECT_ICONS[aspect] || ''} ${aspect}</td>`;
+                info.forEach((i, idx) => {
+                    const isWinner = i.ratio === maxRatio;
+                    driverHtml += `<td class="${isWinner ? 'winner-cell rounded' : ''}"><span class="heat-cell ${getRatioClass(i.ratio)}">${Math.round(i.ratio * 100)}%</span></td>`;
+                });
+                driverHtml += `<td class="text-purple-400 font-medium">${winner}</td></tr>`;
+            });
+            driverHtml += '</tbody></table>';
+            document.getElementById('driverAnalysisTable').innerHTML = driverHtml;
+            
+            // Attribute Wins
+            const wins = {};
+            items.forEach(item => wins[item] = []);
+            Array.from(aspects).forEach(aspect => {
+                const scores = items.map(item => {
+                    const ad = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
+                    const pos = ad?.positive_count || 0, neg = ad?.negative_count || 0;
+                    return { item, ratio: pos / (pos + neg + 0.001) };
+                });
+                const maxR = Math.max(...scores.map(s => s.ratio));
+                const winner = scores.find(s => s.ratio === maxR);
+                if (winner) wins[winner.item].push(aspect);
+            });
+            
+            let winsHtml = '';
+            items.forEach((item, i) => {
+                winsHtml += `<div class="wins-column"><h4 class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-full" style="background:${itemColors[i]}"></span>${item} (${wins[item].length})</h4>`;
+                winsHtml += wins[item].length > 0 ? wins[item].map(a => `<div class="win-item">${ASPECT_ICONS[a] || ''} ${a}</div>`).join('') : '<p class="text-xs text-gray-500">No wins</p>';
+                winsHtml += '</div>';
+            });
+            document.getElementById('correspondenceChart').innerHTML = winsHtml;
         }
     </script>
 </body>
