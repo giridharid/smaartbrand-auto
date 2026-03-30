@@ -1224,12 +1224,49 @@ Include 3-4 most relevant teams only.
 4. If data not provided, say "data not available" """
 
 
+import uuid
+
+def get_data_chat_client():
+    """Get Gemini Data Analytics chat client"""
+    try:
+        from google.cloud import geminidataanalytics_v1alpha as gda
+        from google.api_core import client_options
+        
+        gcp_creds = os.environ.get("GCP_CREDENTIALS_JSON", "")
+        if not gcp_creds:
+            return None
+        
+        gcp_creds = gcp_creds.strip().strip('"').strip("'")
+        
+        try:
+            if gcp_creds.startswith("{"):
+                creds_dict = json.loads(gcp_creds)
+            else:
+                padding = 4 - len(gcp_creds) % 4
+                if padding != 4:
+                    gcp_creds += "=" * padding
+                creds_dict = json.loads(base64.b64decode(gcp_creds).decode('utf-8'))
+            
+            from google.oauth2 import service_account
+            credentials = service_account.Credentials.from_service_account_info(creds_dict)
+            return gda.DataChatServiceClient(credentials=credentials, client_options=client_options.ClientOptions())
+        except:
+            return gda.DataChatServiceClient()
+    except Exception as e:
+        print(f"Data chat client error: {e}")
+        return None
+
+
 @app.post("/api/chat")
 async def chat(request: Request, chat_request: ChatRequest):
-    """Chat with SmaartAnalyst - Data-First approach"""
+    """Chat with SmaartAnalyst - Data-First approach using Data Agent"""
     try:
+        from google.cloud import geminidataanalytics_v1alpha as gda
+        
         user_message = chat_request.message
         context_brand = chat_request.context.get("brand") if chat_request.context else None
+        
+        print(f"[CHAT] Request: message={user_message[:50]}..., context_brand={context_brand}")
         
         # Step 1: Parse intent
         intent = detect_intent(user_message)
@@ -1241,66 +1278,101 @@ async def chat(request: Request, chat_request: ChatRequest):
         # Step 2: Query BigQuery for real data
         bq_data = gather_context_data(intent)
         
-        # Step 3: Format data for LLM
+        # Step 3: Format data for agent
         data_context = format_data_for_llm(bq_data, intent)
         
-        # Step 4: Call Gemini
-        try:
-            import google.generativeai as genai
-            
-            gcp_creds = os.environ.get("GCP_CREDENTIALS_JSON", "")
-            api_key = os.environ.get("GEMINI_API_KEY", "")
-            
-            if api_key:
-                genai.configure(api_key=api_key)
-            elif gcp_creds:
-                # Use service account
-                if gcp_creds.startswith("{"):
-                    creds_dict = json.loads(gcp_creds)
-                else:
-                    padding = 4 - len(gcp_creds) % 4
-                    if padding != 4:
-                        gcp_creds += "=" * padding
-                    creds_dict = json.loads(base64.b64decode(gcp_creds).decode('utf-8'))
-                # Note: genai doesn't directly support service account, use API key
-            
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            
-            system_prompt = get_system_prompt()
-            full_prompt = f"""{system_prompt}
+        print(f"[CHAT] Data fetched for {intent.get('brand', 'no brand')}")
+        
+        # Step 4: Send to Data Agent
+        cc = get_data_chat_client()
+        if not cc:
+            print("[CHAT] Data chat client unavailable")
+            # Fallback: Return formatted data directly
+            return {
+                "response": f"📊 **{intent.get('brand', 'Brand')} Analysis**\n\n{data_context}\n\n_Chat service unavailable._",
+                "data_used": {"detected_brand": intent.get("brand")}
+            }
+        
+        print("[CHAT] Data chat client initialized")
+        
+        conv_id = f"smaart-auto-{uuid.uuid4().hex[:8]}"
+        
+        # Build prompt with data + user query
+        system_prompt = get_system_prompt()
+        enhanced_prompt = f"""{system_prompt}
 
 {data_context}
 
 === USER QUERY ===
 {user_message}
 
-Remember: Use the EXACT numbers from the data above. Do NOT invent any numbers."""
-            
-            response = model.generate_content(full_prompt)
-            response_text = response.text
-            
-            return {
-                "response": response_text,
-                "data_used": {
-                    "detected_brand": intent.get("brand"),
-                    "analysis_type": intent.get("analysis_type")
-                }
-            }
+Remember: Use the EXACT numbers and phrases from the data above. Do NOT query the database or invent any numbers."""
         
-        except Exception as genai_error:
-            print(f"[CHAT] Gemini error: {genai_error}")
+        print(f"[CHAT] Prompt length: {len(enhanced_prompt)} chars")
+        
+        # Setup agent paths
+        parent = f"projects/{PROJECT}/locations/{LOCATION}"
+        agent = f"{parent}/dataAgents/{AGENT_ID}"
+        conv_path = cc.conversation_path(PROJECT, LOCATION, conv_id)
+        
+        print(f"[CHAT] Agent: {agent}")
+        
+        # Create conversation
+        try:
+            cc.get_conversation(name=conv_path)
+            print("[CHAT] Existing conversation found")
+        except Exception as conv_err:
+            print(f"[CHAT] Creating new conversation")
+            cc.create_conversation(request=gda.CreateConversationRequest(
+                parent=parent,
+                conversation_id=conv_id,
+                conversation=gda.Conversation(agents=[agent])
+            ))
+        
+        # Send to agent
+        print("[CHAT] Sending to agent...")
+        stream = cc.chat(request={
+            "parent": parent,
+            "conversation_reference": {
+                "conversation": conv_path,
+                "data_agent_context": {"data_agent": agent}
+            },
+            "messages": [{"user_message": {"text": enhanced_prompt}}]
+        })
+        
+        response_text = ""
+        chunk_count = 0
+        for chunk in stream:
+            chunk_count += 1
             
-            # Fallback: Return formatted data directly
-            fallback_response = f"""📊 **{intent.get('brand', 'Brand')} Analysis**
-
-{data_context}
-
-_For detailed AI insights, please configure GEMINI_API_KEY._"""
+            # Capture from system_message
+            if hasattr(chunk, 'system_message') and hasattr(chunk.system_message, 'text'):
+                for p in chunk.system_message.text.parts:
+                    part_text = str(p)
+                    if part_text.startswith('📊') or part_text.startswith('🎯') or part_text.startswith('👔') or part_text.startswith('📢') or part_text.startswith('🏎') or part_text.startswith('🛋') or part_text.startswith('🛡') or part_text.startswith('⚙') or part_text.startswith('👥') or part_text.startswith('🔬') or part_text.startswith('🔧') or part_text.startswith('💼') or part_text.startswith('✓') or part_text.startswith('✗') or '**' in part_text:
+                        response_text += part_text + "\n"
             
-            return {
-                "response": fallback_response,
-                "data_used": {"detected_brand": intent.get("brand")}
+            # Also check agent_message
+            if hasattr(chunk, 'agent_message') and hasattr(chunk.agent_message, 'text'):
+                for p in chunk.agent_message.text.parts:
+                    response_text += str(p)
+            elif hasattr(chunk, 'message') and hasattr(chunk.message, 'content'):
+                for p in chunk.message.content.parts:
+                    response_text += p.text if hasattr(p, 'text') else str(p)
+        
+        print(f"[CHAT] Total chunks: {chunk_count}, Response length: {len(response_text)}")
+        
+        # Clean up
+        if response_text:
+            response_text = response_text.replace('💭 ', '')
+        
+        return {
+            "response": response_text or "No response received.",
+            "data_used": {
+                "detected_brand": intent.get("brand"),
+                "analysis_type": intent.get("analysis_type")
             }
+        }
     
     except Exception as e:
         print(f"[CHAT] Error: {e}")
