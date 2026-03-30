@@ -807,8 +807,9 @@ async def get_sample_reviews(
         
         reviews = []
         for _, row in result.iterrows():
+            full_text = row['comment_text']
             reviews.append({
-                "text": row['comment_text'][:500] + ('...' if len(row['comment_text']) > 500 else ''),
+                "text": full_text,  # Return full text, frontend will handle truncation/expansion
                 "sentiment": "positive" if row['sentiment'] == 1 else "negative" if row['sentiment'] == -1 else "neutral",
                 "brand": row['brand'],
                 "model": row['model'],
