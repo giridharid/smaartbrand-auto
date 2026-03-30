@@ -8,7 +8,7 @@ Deploy twice on Railway:
 """
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from google.cloud import bigquery
 from google.oauth2 import service_account
@@ -249,6 +249,10 @@ async def root():
             return HTMLResponse(content=f.read())
     except Exception as e:
         return HTMLResponse(content=f"<h1>Smaartbrand API</h1><p>Use /docs for API documentation</p>")
+
+@app.get("/acquink_logo.png")
+async def logo():
+    return FileResponse("acquink_logo.png", media_type="image/png")
 
 @app.get("/health")
 async def health():

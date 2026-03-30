@@ -116,118 +116,191 @@
         .legend-text { margin-left: 4px; }
     </style>
 </head>
-<body class="text-white overflow-x-hidden">
+<body class="text-white overflow-x-hidden min-h-screen flex flex-col">
     <!-- Header -->
     <header class="glass sticky top-0 z-40 px-4 py-3">
-        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2 flex-wrap">
-            <div class="flex items-center gap-2 flex-shrink-0">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
-                    <span id="appIcon" class="text-lg">🚗</span>
-                </div>
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <img src="/acquink_logo.png" alt="Acquink" class="h-8" onerror="this.style.display='none'">
                 <div>
                     <h1 id="appTitle" class="text-lg font-bold gradient-text">Smaartbrand</h1>
-                    <p id="appSubtitle" class="text-xs text-gray-400 hidden sm:block">Intelligence</p>
+                    <p id="appSubtitle" class="text-xs text-gray-400">Intelligence</p>
                 </div>
             </div>
             
-            <div class="flex items-center gap-2 flex-wrap">
-                <select id="brandSelect" class="glass-dark px-2 py-1.5 rounded-lg text-xs focus:outline-none" style="max-width: 120px;">
-                    <option value="">Loading...</option>
-                </select>
-                <select id="segmentSelect" class="glass-dark px-2 py-1.5 rounded-lg text-xs focus:outline-none hidden" style="max-width: 120px;">
-                    <option value="">All Segments</option>
-                </select>
-                <select id="modelSelect" class="glass-dark px-2 py-1.5 rounded-lg text-xs focus:outline-none hidden truncate" style="max-width: 160px;">
-                    <option value="">Select Model</option>
-                </select>
-                
-                <div class="glass-dark rounded-lg p-1 flex flex-shrink-0">
-                    <button id="brandViewBtn" class="px-2 py-1 rounded text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white whitespace-nowrap">Brand View</button>
-                    <button id="modelViewBtn" class="px-2 py-1 rounded text-xs font-medium text-gray-400 hover:text-white whitespace-nowrap">Model View</button>
+            <div class="flex items-center gap-4">
+                <div class="text-sm text-gray-400">
+                    Requests: <span id="rateCount" class="text-purple-400">--</span>/<span id="rateLimit">4</span>
+                    <button id="unlockBtn" class="hidden ml-2 text-xs bg-purple-600 hover:bg-purple-500 px-2 py-1 rounded">🔓 Unlock</button>
                 </div>
-                
-                <button id="chatToggle" class="glass-dark px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-white/10 transition flex-shrink-0">
+                <button id="chatToggle" class="glass-dark px-3 py-1.5 rounded-lg flex items-center gap-2 hover:bg-white/10 transition">
                     <span>💬</span>
-                    <span class="text-xs hidden lg:inline">SmaartAnalyst</span>
+                    <span class="text-sm">SmaartAnalyst</span>
                 </button>
             </div>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-6 py-6">
-        <!-- Context Header -->
-        <div class="glass rounded-2xl p-4 mb-6 flex items-center justify-between">
-            <div>
-                <h2 id="contextTitle" class="text-xl font-bold gradient-text">Loading...</h2>
-                <p id="contextSubtitle" class="text-sm text-gray-400">Select a brand to view insights</p>
-            </div>
-            <div id="contextMeta" class="text-right hidden">
-                <div class="flex items-center gap-6">
-                    <div>
-                        <span class="text-xs text-gray-500">Satisfaction</span>
-                        <div id="contextSatisfaction" class="text-xl font-bold text-green-400">--%</div>
-                    </div>
-                    <div>
-                        <span class="text-xs text-gray-500">Mentions</span>
-                        <div id="contextMentions" class="text-xl font-bold text-purple-400">--</div>
-                    </div>
-                </div>
+    <main class="max-w-7xl mx-auto px-6 py-6 flex-grow">
+        <!-- Mode Tabs -->
+        <div class="glass rounded-t-2xl px-4 py-3 flex items-center justify-between">
+            <div class="flex gap-2">
+                <button id="brandViewTab" class="mode-tab px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white" onclick="switchMode('brand')">Brand View</button>
+                <button id="modelViewTab" class="mode-tab px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white" onclick="switchMode('model')">Model View</button>
+                <button id="compareBrandsModeTab" class="mode-tab px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white" onclick="switchMode('compareBrands')">Compare Brands</button>
+                <button id="compareModelsModeTab" class="mode-tab px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white" onclick="switchMode('compareModels')">Compare Models</button>
             </div>
         </div>
-
+        
+        <!-- Brand View Selectors -->
+        <div id="brandViewSelectors" class="glass rounded-none px-4 py-3 border-t border-white/10 flex items-center gap-4">
+            <select id="brandSelect" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[150px]">
+                <option value="">Select Brand</option>
+            </select>
+            <select id="segmentSelect" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[150px]">
+                <option value="">All Segments</option>
+            </select>
+            <button id="applyBrandBtn" class="bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">Apply</button>
+        </div>
+        
+        <!-- Model View Selectors -->
+        <div id="modelViewSelectors" class="glass rounded-none px-4 py-3 border-t border-white/10 hidden">
+            <div class="flex items-center gap-4">
+                <select id="modelBrandSelect" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[150px]">
+                    <option value="">Select Brand</option>
+                </select>
+                <select id="modelSelect" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[200px]">
+                    <option value="">Select Model</option>
+                </select>
+                <button id="applyModelBtn" class="bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">Apply</button>
+            </div>
+        </div>
+        
+        <!-- Compare Brands Selectors -->
+        <div id="compareBrandsSelectors" class="glass rounded-none px-4 py-3 border-t border-white/10 hidden">
+            <div class="flex items-center gap-4 flex-wrap">
+                <select id="compareBrand1" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[140px]">
+                    <option value="">Brand 1</option>
+                </select>
+                <span class="text-gray-500">vs</span>
+                <select id="compareBrand2" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[140px]">
+                    <option value="">Brand 2</option>
+                </select>
+                <span class="text-gray-500">vs</span>
+                <select id="compareBrand3" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[140px]">
+                    <option value="">Brand 3</option>
+                </select>
+                <select id="compareGender" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none">
+                    <option value="">All Genders</option>
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                </select>
+                <select id="comparePersona" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none">
+                    <option value="">All Personas</option>
+                </select>
+                <button id="runCompareBrandsBtn" class="bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">Compare</button>
+            </div>
+        </div>
+        
+        <!-- Compare Models Selectors -->
+        <div id="compareModelsSelectors" class="glass rounded-none px-4 py-3 border-t border-white/10 hidden">
+            <div class="flex items-center gap-4 flex-wrap">
+                <div class="flex items-center gap-2">
+                    <select id="compareModelBrand1" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[120px]">
+                        <option value="">Brand</option>
+                    </select>
+                    <select id="compareModel1" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[140px]">
+                        <option value="">Model 1</option>
+                    </select>
+                </div>
+                <span class="text-gray-500">vs</span>
+                <div class="flex items-center gap-2">
+                    <select id="compareModelBrand2" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[120px]">
+                        <option value="">Brand</option>
+                    </select>
+                    <select id="compareModel2" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[140px]">
+                        <option value="">Model 2</option>
+                    </select>
+                </div>
+                <span class="text-gray-500">vs</span>
+                <div class="flex items-center gap-2">
+                    <select id="compareModelBrand3" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[120px]">
+                        <option value="">Brand</option>
+                    </select>
+                    <select id="compareModel3" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none min-w-[140px]">
+                        <option value="">Model 3</option>
+                    </select>
+                </div>
+                <select id="compareModelsGender" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none">
+                    <option value="">All Genders</option>
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                </select>
+                <select id="compareModelsPersona" class="glass-dark px-3 py-2 rounded-lg text-sm focus:outline-none">
+                    <option value="">All Personas</option>
+                </select>
+                <button id="runCompareModelsBtn" class="bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">Compare</button>
+            </div>
+        </div>
+        
+        <!-- Main Content Area (hidden until Apply) -->
+        <div id="mainContent" class="hidden">
         <!-- Stats Row -->
-        <div class="grid grid-cols-4 gap-4 mb-6">
-            <div class="stat-card glass rounded-2xl p-4">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-gray-400 text-xs">Total Mentions</span>
-                    <span class="text-xl">💬</span>
+        <div id="statsRow" class="glass rounded-none px-4 py-4 border-t border-white/10">
+            <div class="grid grid-cols-4 gap-4">
+                <div class="stat-card glass-dark rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-400 text-xs">Total Mentions</span>
+                        <span class="text-lg">💬</span>
+                    </div>
+                    <div id="statOverall" class="text-2xl font-bold gradient-text">--</div>
+                    <div id="statMentions" class="text-xs text-gray-500">from Reddit discussions</div>
                 </div>
-                <div id="statOverall" class="text-2xl font-bold gradient-text">--</div>
-                <div id="statMentions" class="text-xs text-gray-500">from Reddit discussions</div>
-            </div>
-            
-            <div class="stat-card glass rounded-2xl p-4">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-gray-400 text-xs">Top Strength</span>
-                    <span class="text-xl">💪</span>
+                
+                <div class="stat-card glass-dark rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-400 text-xs">Top Strength</span>
+                        <span class="text-lg">💪</span>
+                    </div>
+                    <div id="statStrength" class="text-lg font-bold text-green-400">--</div>
+                    <div id="statStrengthScore" class="text-xs text-gray-500">--</div>
                 </div>
-                <div id="statStrength" class="text-lg font-bold text-green-400">--</div>
-                <div id="statStrengthScore" class="text-xs text-gray-500">--</div>
-            </div>
-            
-            <div class="stat-card glass rounded-2xl p-4">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-gray-400 text-xs">Needs Attention</span>
-                    <span class="text-xl">⚠️</span>
+                
+                <div class="stat-card glass-dark rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-400 text-xs">Needs Attention</span>
+                        <span class="text-lg">⚠️</span>
+                    </div>
+                    <div id="statWeakness" class="text-lg font-bold text-amber-400">--</div>
+                    <div id="statWeaknessScore" class="text-xs text-gray-500">--</div>
                 </div>
-                <div id="statWeakness" class="text-lg font-bold text-amber-400">--</div>
-                <div id="statWeaknessScore" class="text-xs text-gray-500">--</div>
-            </div>
-            
-            <div class="stat-card glass rounded-2xl p-4">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-gray-400 text-xs">Top Buyer Type</span>
-                    <span class="text-xl">👥</span>
+                
+                <div class="stat-card glass-dark rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-400 text-xs">Top Buyer Type</span>
+                        <span class="text-lg">👥</span>
+                    </div>
+                    <div id="statBuyerType" class="text-lg font-bold text-purple-400">--</div>
+                    <div id="statBuyerPct" class="text-xs text-gray-500">--</div>
                 </div>
-                <div id="statBuyerType" class="text-lg font-bold text-purple-400">--</div>
-                <div id="statBuyerPct" class="text-xs text-gray-500">--</div>
             </div>
         </div>
 
-        <!-- Tabs -->
-        <div class="flex gap-2 mb-6 flex-wrap">
-            <button class="tab-btn active px-4 py-2 rounded-lg text-sm font-medium transition" onclick="showTab('drivers')">📊 Drivers</button>
-            <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition" onclick="showTab('satisfaction')">📈 Satisfaction</button>
-            <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition" onclick="showTab('rnd')">🔬 R&D Signals</button>
-            <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition" onclick="showTab('comparison')">⚖️ Compare</button>
-            <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition" onclick="showTab('demographics')">👥 Demographics</button>
+        <!-- Sub Tabs -->
+        <div id="subTabsRow" class="glass rounded-none px-4 py-2 border-t border-white/10">
+            <div class="flex gap-2 overflow-x-auto pb-1">
+                <button class="sub-tab active px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white" data-tab="drivers">📊 Drivers</button>
+                <button class="sub-tab px-4 py-2 rounded-lg text-sm font-medium text-gray-400" data-tab="satisfaction">📈 Satisfaction</button>
+                <button class="sub-tab px-4 py-2 rounded-lg text-sm font-medium text-gray-400" data-tab="rnd">🔬 R&D Signals</button>
+                <button class="sub-tab px-4 py-2 rounded-lg text-sm font-medium text-gray-400" data-tab="demographics">👥 Demographics</button>
+            </div>
         </div>
 
-        <!-- Tab Panels -->
-        <div id="tabContent">
+        <!-- Tab Content -->
+        <div class="glass rounded-b-2xl">
             <!-- Drivers Tab -->
-            <div id="driversTab" class="tab-panel">
+            <div id="driversTab" class="tab-panel p-6">
                 <!-- Summary Cards -->
                 <div class="grid grid-cols-2 gap-6 mb-6">
                     <!-- What Buyers Love -->
@@ -314,98 +387,8 @@
                 </div>
             </div>
             
-            <!-- Comparison Tab - Matching Hotels -->
-            <div id="comparisonTab" class="tab-panel hidden">
-                <div class="glass rounded-2xl p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-semibold">Compare</h3>
-                        <div class="glass-dark rounded-lg p-1 flex">
-                            <button id="compareBrandsBtn" class="px-4 py-1.5 rounded text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white">Compare Brands</button>
-                            <button id="compareModelsBtn" class="px-4 py-1.5 rounded text-xs font-medium text-gray-400 hover:text-white">Compare Models</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Brand Compare Selectors -->
-                    <div id="brandCompareSelectors" class="grid grid-cols-3 gap-4 mb-6">
-                        <div class="glass-dark rounded-xl p-4">
-                            <label class="text-xs text-gray-400 mb-2 block">Brand 1</label>
-                            <select id="compareBrand1" class="w-full glass-dark px-3 py-2 rounded-lg text-sm">
-                                <option value="">Select Brand</option>
-                            </select>
-                        </div>
-                        <div class="glass-dark rounded-xl p-4">
-                            <label class="text-xs text-gray-400 mb-2 block">Brand 2</label>
-                            <select id="compareBrand2" class="w-full glass-dark px-3 py-2 rounded-lg text-sm">
-                                <option value="">Select Brand</option>
-                            </select>
-                        </div>
-                        <div class="glass-dark rounded-xl p-4">
-                            <label class="text-xs text-gray-400 mb-2 block">Brand 3</label>
-                            <select id="compareBrand3" class="w-full glass-dark px-3 py-2 rounded-lg text-sm">
-                                <option value="">Select Brand</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <!-- Model Compare Selectors -->
-                    <div id="modelCompareSelectors" class="grid grid-cols-3 gap-4 mb-6 hidden">
-                        <div class="glass-dark rounded-xl p-4">
-                            <label class="text-xs text-gray-400 mb-2 block">Model 1</label>
-                            <select id="compareModelBrand1" class="w-full glass-dark px-3 py-2 rounded-lg text-sm mb-2">
-                                <option value="">Select Brand</option>
-                            </select>
-                            <select id="compareModel1" class="w-full glass-dark px-3 py-2 rounded-lg text-sm">
-                                <option value="">Select Model</option>
-                            </select>
-                        </div>
-                        <div class="glass-dark rounded-xl p-4">
-                            <label class="text-xs text-gray-400 mb-2 block">Model 2</label>
-                            <select id="compareModelBrand2" class="w-full glass-dark px-3 py-2 rounded-lg text-sm mb-2">
-                                <option value="">Select Brand</option>
-                            </select>
-                            <select id="compareModel2" class="w-full glass-dark px-3 py-2 rounded-lg text-sm">
-                                <option value="">Select Model</option>
-                            </select>
-                        </div>
-                        <div class="glass-dark rounded-xl p-4">
-                            <label class="text-xs text-gray-400 mb-2 block">Model 3</label>
-                            <select id="compareModelBrand3" class="w-full glass-dark px-3 py-2 rounded-lg text-sm mb-2">
-                                <option value="">Select Brand</option>
-                            </select>
-                            <select id="compareModel3" class="w-full glass-dark px-3 py-2 rounded-lg text-sm">
-                                <option value="">Select Model</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center justify-between mb-6">
-                        <div class="flex gap-3">
-                            <span class="text-gray-400 text-sm">Filter by:</span>
-                            <select id="compareGender" class="glass-dark px-3 py-1.5 rounded text-xs">
-                                <option value="">All Genders</option>
-                                <option value="M">Male</option>
-                                <option value="F">Female</option>
-                            </select>
-                            <select id="comparePersona" class="glass-dark px-3 py-1.5 rounded text-xs">
-                                <option value="">All Personas</option>
-                                <option value="value_seeker">Value Seeker</option>
-                                <option value="enthusiast">Enthusiast</option>
-                                <option value="family">Family</option>
-                                <option value="commuter">Commuter</option>
-                                <option value="first_buyer">First Buyer</option>
-                            </select>
-                        </div>
-                        <button id="runCompareBtn" class="bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">Compare</button>
-                    </div>
-                    
-                    <div id="comparisonContent">
-                        <p class="text-gray-500 text-center py-12">Select brands or models to compare</p>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Demographics Tab -->
-            <div id="demographicsTab" class="tab-panel hidden">
+            <div id="demographicsTab" class="tab-panel hidden p-6">
                 <div class="grid grid-cols-3 gap-6">
                     <div class="glass rounded-2xl p-6">
                         <h3 class="text-lg font-semibold mb-4">Buyer Persona</h3>
@@ -421,8 +404,71 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Comparison Tab (for Compare Brands mode) -->
+            <div id="comparisonTab" class="tab-panel hidden p-6">
+                <!-- Satisfaction Score Section -->
+                <div class="glass rounded-2xl p-6 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Satisfaction Score</h3>
+                        <div class="flex items-center gap-4 text-xs text-gray-400">
+                            <span>Low</span>
+                            <div class="flex gap-1">
+                                <div class="w-6 h-3 rounded" style="background: rgba(255, 99, 99, 0.3);"></div>
+                                <div class="w-6 h-3 rounded" style="background: rgba(255, 180, 100, 0.3);"></div>
+                                <div class="w-6 h-3 rounded" style="background: rgba(100, 200, 180, 0.3);"></div>
+                                <div class="w-6 h-3 rounded" style="background: rgba(100, 200, 180, 0.4);"></div>
+                            </div>
+                            <span>High</span>
+                        </div>
+                    </div>
+                    <div id="satisfactionScoreTable"></div>
+                </div>
+                
+                <!-- Driver Analysis Section -->
+                <div class="glass rounded-2xl p-6 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Driver Analysis</h3>
+                        <div class="flex items-center gap-4 text-xs text-gray-400">
+                            <span>Low</span>
+                            <div class="flex gap-1">
+                                <div class="w-6 h-3 rounded" style="background: rgba(255, 99, 99, 0.3);"></div>
+                                <div class="w-6 h-3 rounded" style="background: rgba(255, 180, 100, 0.3);"></div>
+                                <div class="w-6 h-3 rounded" style="background: rgba(100, 200, 180, 0.3);"></div>
+                                <div class="w-6 h-3 rounded" style="background: rgba(100, 200, 180, 0.4);"></div>
+                            </div>
+                            <span>High</span>
+                        </div>
+                    </div>
+                    <div id="driverAnalysisTable"></div>
+                </div>
+                
+                <!-- Attribute Wins by Brand -->
+                <div class="glass rounded-2xl p-6">
+                    <div class="flex items-center gap-2 mb-2">
+                        <h3 class="text-lg font-semibold">Attribute Wins by Brand</h3>
+                        <span class="text-gray-400 text-xs cursor-help" title="Shows which brand scores highest on each attribute">ℹ️</span>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-4">Attributes listed under the brand that scores highest on them.</p>
+                    <div id="correspondenceChart" class="grid grid-cols-3 gap-6" style="min-height: 320px;"></div>
+                </div>
+            </div>
         </div>
+        </div><!-- close mainContent -->
     </main>
+    
+    <!-- Footer -->
+    <footer class="glass py-4 px-6 mt-auto">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <img src="/acquink_logo.png" alt="Acquink" class="h-6" onerror="this.style.display='none'">
+                <span class="text-gray-400 text-sm">© 2026 Acquink. All rights reserved.</span>
+            </div>
+            <div class="text-gray-500 text-sm">
+                Powered by <span class="text-purple-400">MASI</span> Technology
+            </div>
+        </div>
+    </footer>
 
     <!-- Chat Panel - Matching Hotels -->
     <div id="chatPanel" class="chat-panel fixed right-0 top-0 h-full w-[50vw] min-w-[500px] max-w-[800px] glass-dark z-50 flex flex-col">
@@ -515,11 +561,10 @@
         let config = {};  // Loaded from /api/config
         let currentBrand = null;
         let currentModel = null;
-        let viewMode = 'brand';
+        let currentMode = 'brand'; // brand, model, compareBrands, compareModels
         let brands = [];
         let models = [];
         let charts = {};
-        let compareMode = 'brand';
         
         const ASPECT_ICONS = {
             'Performance': '🏎️', 'Comfort': '🛋️', 'Safety': '🛡️', 'Features': '⚙️',
@@ -540,13 +585,116 @@
         
         // Loading state helper
         function setLoading(isLoading) {
-            const statsContainer = document.querySelector('.grid.grid-cols-4');
             if (isLoading) {
                 document.getElementById('statOverall').textContent = '...';
                 document.getElementById('statStrength').textContent = 'Loading...';
                 document.getElementById('statWeakness').textContent = 'Loading...';
                 document.getElementById('statBuyerType').textContent = 'Loading...';
             }
+        }
+        
+        // ═══════════════════════════════════════════
+        // MODE SWITCHING
+        // ═══════════════════════════════════════════
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            // Update mode tab styles
+            document.querySelectorAll('.mode-tab').forEach(btn => {
+                btn.classList.remove('bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
+                btn.classList.add('text-gray-400');
+            });
+            const activeTab = document.getElementById(mode + 'ViewTab') || document.getElementById(mode + 'ModeTab');
+            if (activeTab) {
+                activeTab.classList.add('bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
+                activeTab.classList.remove('text-gray-400');
+            }
+            
+            // Hide all selectors
+            document.getElementById('brandViewSelectors').classList.add('hidden');
+            document.getElementById('modelViewSelectors').classList.add('hidden');
+            document.getElementById('compareBrandsSelectors').classList.add('hidden');
+            document.getElementById('compareModelsSelectors').classList.add('hidden');
+            
+            // Hide mainContent initially
+            document.getElementById('mainContent').classList.add('hidden');
+            
+            // Show appropriate selector and content
+            if (mode === 'brand') {
+                document.getElementById('brandViewSelectors').classList.remove('hidden');
+            } else if (mode === 'model') {
+                document.getElementById('modelViewSelectors').classList.remove('hidden');
+            } else if (mode === 'compareBrands') {
+                document.getElementById('compareBrandsSelectors').classList.remove('hidden');
+            } else if (mode === 'compareModels') {
+                document.getElementById('compareModelsSelectors').classList.remove('hidden');
+            }
+            
+            // Clear comparison data when switching away from compare mode
+            if (mode !== 'compareBrands') {
+                document.getElementById('satisfactionScoreTable').innerHTML = '';
+                document.getElementById('driverAnalysisTable').innerHTML = '';
+                document.getElementById('correspondenceChart').innerHTML = '';
+            }
+        }
+        
+        function applyBrandView() {
+            const brand = document.getElementById('brandSelect').value;
+            if (!brand) {
+                alert('Please select a brand');
+                return;
+            }
+            currentBrand = brand;
+            currentModel = null;
+            
+            // Show main content
+            document.getElementById('mainContent').classList.remove('hidden');
+            document.getElementById('statsRow').classList.remove('hidden');
+            document.getElementById('subTabsRow').classList.remove('hidden');
+            
+            // Show drivers tab by default
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById('driversTab').classList.remove('hidden');
+            
+            // Reset sub-tab styling
+            document.querySelectorAll('.sub-tab').forEach(b => {
+                b.classList.remove('active', 'bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
+                b.classList.add('text-gray-400');
+            });
+            document.querySelector('.sub-tab[data-tab="drivers"]').classList.add('active', 'bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
+            document.querySelector('.sub-tab[data-tab="drivers"]').classList.remove('text-gray-400');
+            
+            loadAllData();
+        }
+        
+        function applyModelView() {
+            const brand = document.getElementById('modelBrandSelect').value;
+            const model = document.getElementById('modelSelect').value;
+            if (!brand || !model) {
+                alert('Please select a brand and model');
+                return;
+            }
+            currentBrand = brand;
+            currentModel = model;
+            
+            // Show main content
+            document.getElementById('mainContent').classList.remove('hidden');
+            document.getElementById('statsRow').classList.remove('hidden');
+            document.getElementById('subTabsRow').classList.remove('hidden');
+            
+            // Show drivers tab by default
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById('driversTab').classList.remove('hidden');
+            
+            // Reset sub-tab styling
+            document.querySelectorAll('.sub-tab').forEach(b => {
+                b.classList.remove('active', 'bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
+                b.classList.add('text-gray-400');
+            });
+            document.querySelector('.sub-tab[data-tab="drivers"]').classList.add('active', 'bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
+            document.querySelector('.sub-tab[data-tab="drivers"]').classList.remove('text-gray-400');
+            
+            loadAllData();
         }
         
         // ═══════════════════════════════════════════
@@ -565,7 +713,6 @@
                 
                 // Update UI with config
                 document.title = config.title + ' | Decision Intelligence';
-                document.getElementById('appIcon').textContent = config.icon;
                 document.getElementById('appTitle').textContent = config.title;
                 document.getElementById('appSubtitle').textContent = config.subtitle;
                 document.getElementById('chatContextLabel').textContent = config.subtitle + ' AI';
@@ -587,108 +734,94 @@
                 const res = await fetch('/api/brands');
                 brands = await res.json();
                 
-                const selects = ['brandSelect', 'compareBrand1', 'compareBrand2', 'compareBrand3', 
-                                 'compareModelBrand1', 'compareModelBrand2', 'compareModelBrand3'];
+                const selects = ['brandSelect', 'modelBrandSelect', 'compareBrand1', 'compareBrand2', 'compareBrand3', 'compareModelBrand1', 'compareModelBrand2', 'compareModelBrand3'];
                 selects.forEach(id => {
                     const select = document.getElementById(id);
                     if (select) {
-                        select.innerHTML = '<option value="">Select Brand</option>' + 
+                        const defaultText = id.startsWith('compare') ? (id.includes('Model') ? 'Brand' : 'Brand ' + id.slice(-1)) : 'Select Brand';
+                        select.innerHTML = `<option value="">${defaultText}</option>` + 
                             brands.map(b => `<option value="${b}">${b}</option>`).join('');
                     }
                 });
                 
-                // Auto-select first brand
-                if (brands.length > 0) {
-                    document.getElementById('brandSelect').value = brands[0];
-                    currentBrand = brands[0];
-                    await loadModels(brands[0]);
-                    await loadAllData();
-                }
+                // Populate persona dropdowns
+                ['comparePersona', 'compareModelsPersona'].forEach(id => {
+                    const personaSelect = document.getElementById(id);
+                    if (personaSelect) {
+                        personaSelect.innerHTML = '<option value="">All Personas</option>' +
+                            Object.entries(PERSONA_LABELS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+                    }
+                });
             } catch (e) {
                 console.error('Failed to load brands:', e);
             }
         }
         
-        async function loadModels(brand) {
+        async function loadModels(brand, selectId = 'modelSelect') {
             try {
                 const res = await fetch(`/api/models?brand=${encodeURIComponent(brand)}`);
-                models = await res.json();
+                const brandModels = await res.json();
                 
-                const select = document.getElementById('modelSelect');
-                select.innerHTML = '<option value="">Select Model</option>' + 
-                    models.map(m => `<option value="${m.model}">${m.model}</option>`).join('');
+                const select = document.getElementById(selectId);
+                if (select) {
+                    select.innerHTML = '<option value="">Select Model</option>' + 
+                        brandModels.map(m => `<option value="${m.model}">${m.model}</option>`).join('');
+                }
+                return brandModels;
             } catch (e) {
                 console.error('Failed to load models:', e);
+                return [];
             }
         }
         
         function setupEventListeners() {
-            // Brand/Model selectors
-            document.getElementById('brandSelect').addEventListener('change', async (e) => {
-                currentBrand = e.target.value;
-                currentModel = null;
-                document.getElementById('modelSelect').value = '';
-                if (currentBrand) {
-                    await loadModels(currentBrand);
-                    await loadAllData();
+            // Apply buttons
+            document.getElementById('applyBrandBtn').addEventListener('click', applyBrandView);
+            document.getElementById('applyModelBtn').addEventListener('click', applyModelView);
+            
+            // Model brand select - load models when brand changes
+            document.getElementById('modelBrandSelect').addEventListener('change', async (e) => {
+                if (e.target.value) {
+                    await loadModels(e.target.value, 'modelSelect');
                 }
             });
             
-            document.getElementById('modelSelect').addEventListener('change', async (e) => {
-                currentModel = e.target.value || null;
-                await loadAllData();
-            });
+            // Compare brands button
+            document.getElementById('runCompareBrandsBtn').addEventListener('click', () => runComparison('brand'));
             
-            // View mode toggle
-            document.getElementById('brandViewBtn').addEventListener('click', () => {
-                viewMode = 'brand';
-                document.getElementById('brandViewBtn').className = 'px-2 py-1 rounded text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white whitespace-nowrap';
-                document.getElementById('modelViewBtn').className = 'px-2 py-1 rounded text-xs font-medium text-gray-400 hover:text-white whitespace-nowrap';
-                document.getElementById('modelSelect').classList.add('hidden');
-                currentModel = null;
-                loadAllData();
-            });
+            // Compare models button
+            document.getElementById('runCompareModelsBtn').addEventListener('click', () => runComparison('model'));
             
-            document.getElementById('modelViewBtn').addEventListener('click', () => {
-                viewMode = 'model';
-                document.getElementById('modelViewBtn').className = 'px-2 py-1 rounded text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white whitespace-nowrap';
-                document.getElementById('brandViewBtn').className = 'px-2 py-1 rounded text-xs font-medium text-gray-400 hover:text-white whitespace-nowrap';
-                document.getElementById('modelSelect').classList.remove('hidden');
-            });
-            
-            // Compare mode toggle
-            document.getElementById('compareBrandsBtn').addEventListener('click', () => {
-                compareMode = 'brand';
-                document.getElementById('compareBrandsBtn').className = 'px-4 py-1.5 rounded text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white';
-                document.getElementById('compareModelsBtn').className = 'px-4 py-1.5 rounded text-xs font-medium text-gray-400 hover:text-white';
-                document.getElementById('brandCompareSelectors').classList.remove('hidden');
-                document.getElementById('modelCompareSelectors').classList.add('hidden');
-            });
-            
-            document.getElementById('compareModelsBtn').addEventListener('click', () => {
-                compareMode = 'model';
-                document.getElementById('compareModelsBtn').className = 'px-4 py-1.5 rounded text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-600 text-white';
-                document.getElementById('compareBrandsBtn').className = 'px-4 py-1.5 rounded text-xs font-medium text-gray-400 hover:text-white';
-                document.getElementById('brandCompareSelectors').classList.add('hidden');
-                document.getElementById('modelCompareSelectors').classList.remove('hidden');
-            });
-            
-            // Model compare brand selectors
+            // Model compare brand selects - load models when brand changes
             ['compareModelBrand1', 'compareModelBrand2', 'compareModelBrand3'].forEach((id, idx) => {
                 document.getElementById(id).addEventListener('change', async (e) => {
-                    const brand = e.target.value;
-                    const modelSelectId = `compareModel${idx + 1}`;
-                    if (brand) {
-                        const res = await fetch(`/api/models?brand=${encodeURIComponent(brand)}`);
-                        const brandModels = await res.json();
-                        document.getElementById(modelSelectId).innerHTML = '<option value="">Select Model</option>' + 
-                            brandModels.map(m => `<option value="${m.model}">${m.model}</option>`).join('');
+                    if (e.target.value) {
+                        await loadModels(e.target.value, `compareModel${idx + 1}`);
                     }
                 });
             });
             
-            // Run comparison
-            document.getElementById('runCompareBtn').addEventListener('click', runComparison);
+            // Sub-tabs
+            document.querySelectorAll('.sub-tab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Update button styles
+                    document.querySelectorAll('.sub-tab').forEach(b => {
+                        b.classList.remove('active', 'bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
+                        b.classList.add('text-gray-400');
+                    });
+                    btn.classList.add('active', 'bg-gradient-to-r', 'from-purple-500', 'to-indigo-600', 'text-white');
+                    btn.classList.remove('text-gray-400');
+                    
+                    // Hide all tab panels, show selected
+                    document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+                    document.getElementById(btn.dataset.tab + 'Tab').classList.remove('hidden');
+                    
+                    // Load data for specific tabs
+                    if (btn.dataset.tab === 'demographics') loadDemographics();
+                    if (btn.dataset.tab === 'rnd') loadRndSignals();
+                    if (btn.dataset.tab === 'satisfaction') loadSatisfactionTab();
+                });
+            });
             
             // Chat toggle
             document.getElementById('chatToggle').addEventListener('click', openChat);
@@ -986,40 +1119,55 @@
         // ═══════════════════════════════════════════
         // COMPARISON - Matching Hotels Exactly
         // ═══════════════════════════════════════════
-        async function runComparison() {
+        async function runComparison(compareType) {
             let items = [];
+            let persona, gender;
             
-            if (compareMode === 'brand') {
+            if (compareType === 'brand') {
                 items = [
                     document.getElementById('compareBrand1').value,
                     document.getElementById('compareBrand2').value,
                     document.getElementById('compareBrand3').value
                 ].filter(v => v);
+                persona = document.getElementById('comparePersona').value;
+                gender = document.getElementById('compareGender').value;
             } else {
                 items = [
                     document.getElementById('compareModel1').value,
                     document.getElementById('compareModel2').value,
                     document.getElementById('compareModel3').value
                 ].filter(v => v);
+                persona = document.getElementById('compareModelsPersona').value;
+                gender = document.getElementById('compareModelsGender').value;
             }
             
             if (items.length < 2) {
-                document.getElementById('comparisonContent').innerHTML = '<p class="text-amber-400 text-center py-8">Please select at least 2 items to compare</p>';
+                alert(`Please select at least 2 ${compareType === 'brand' ? 'brands' : 'models'} to compare`);
                 return;
             }
             
-            // Show loading
-            document.getElementById('comparisonContent').innerHTML = '<div class="text-center py-12"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500 mb-4"></div><p class="text-gray-400">Loading comparison...</p></div>';
-            document.getElementById('runCompareBtn').disabled = true;
-            document.getElementById('runCompareBtn').textContent = 'Loading...';
+            // Show mainContent with comparisonTab
+            document.getElementById('mainContent').classList.remove('hidden');
+            document.getElementById('statsRow').classList.add('hidden');
+            document.getElementById('subTabsRow').classList.add('hidden');
             
-            const persona = document.getElementById('comparePersona').value;
-            const gender = document.getElementById('compareGender').value;
+            // Show only comparisonTab
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById('comparisonTab').classList.remove('hidden');
+            
+            // Show loading
+            document.getElementById('satisfactionScoreTable').innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500"></div></div>';
+            document.getElementById('driverAnalysisTable').innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500"></div></div>';
+            document.getElementById('correspondenceChart').innerHTML = '<div class="text-center py-8 col-span-3"><div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500"></div></div>';
+            
+            const btn = compareType === 'brand' ? document.getElementById('runCompareBrandsBtn') : document.getElementById('runCompareModelsBtn');
+            btn.disabled = true;
+            btn.textContent = 'Loading...';
             
             try {
                 const params = new URLSearchParams({
                     items: items.join(','),
-                    compare_by: compareMode,
+                    compare_by: compareType,
                     ...(persona ? { persona } : {}),
                     ...(gender ? { gender } : {})
                 });
@@ -1030,10 +1178,10 @@
                 renderComparison(items, data);
             } catch (e) {
                 console.error('Comparison error:', e);
-                document.getElementById('comparisonContent').innerHTML = '<p class="text-red-400 text-center py-8">Error loading comparison</p>';
+                document.getElementById('satisfactionScoreTable').innerHTML = '<p class="text-red-400 text-center py-4">Error loading comparison</p>';
             } finally {
-                document.getElementById('runCompareBtn').disabled = false;
-                document.getElementById('runCompareBtn').textContent = 'Compare';
+                btn.disabled = false;
+                btn.textContent = 'Compare';
             }
         }
         
@@ -1060,8 +1208,6 @@
                 };
             });
             
-            const maxNet = Math.max(...itemStats.map(s => s.netSentiment));
-            
             // Helper functions
             const getNameSizeClass = (name) => {
                 if (name.length <= 12) return 'short';
@@ -1078,170 +1224,60 @@
                 </th>
             `;
             
-            // Helper to get heat class based on net sentiment
-            const getNetHeatClass = (net, maxNet) => {
-                const ratio = maxNet > 0 ? net / maxNet : 0;
-                if (ratio >= 0.9) return 'heat-vhigh';
-                if (ratio >= 0.7) return 'heat-high';
+            // Helper to get heat class based on positive ratio
+            const getRatioHeatClass = (ratio) => {
+                if (ratio >= 0.8) return 'heat-vhigh';
+                if (ratio >= 0.6) return 'heat-high';
                 if (ratio >= 0.4) return 'heat-med';
-                if (ratio >= 0) return 'heat-low';
+                if (ratio >= 0.2) return 'heat-low';
                 return 'heat-vlow';
             };
             
-            // Calculate wins for verdict (based on positive RATIO for fairness)
-            const winsCount = {};
-            items.forEach(item => { winsCount[item] = 0; });
-            
-            for (const aspect of aspects) {
-                const scores = items.map(item => {
-                    const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
-                    const pos = aspectData?.positive_count || 0;
-                    const neg = aspectData?.negative_count || 0;
-                    const mentions = aspectData?.total_mentions || 0;
-                    const ratio = (pos + neg) > 0 ? pos / (pos + neg) : 0;
-                    return { 
-                        item, 
-                        ratio: mentions >= 10 ? ratio : -1,
-                        mentions 
-                    };
-                });
-                const validScores = scores.filter(s => s.ratio >= 0);
-                if (validScores.length === 0) continue;
-                
-                const maxRatio = Math.max(...validScores.map(s => s.ratio));
-                const winner = validScores.find(s => s.ratio === maxRatio);
-                if (winner) winsCount[winner.item]++;
-            }
-            
-            const totalAspects = aspects.length;
-            const overallWinner = Object.entries(winsCount).sort((a, b) => b[1] - a[1])[0];
-            const mostDiscussed = [...itemStats].sort((a, b) => b.totalMentions - a.totalMentions)[0];
-            
-            // Sort by positive count for "Most Praised"
-            const sortedByPos = [...itemStats].sort((a, b) => b.posCount - a.posCount);
-            
-            // 0. Verdict Summary Card
-            let html = `
-                <div class="glass rounded-2xl p-6 mb-8 border border-purple-500/30">
-                    <h4 class="text-lg font-semibold text-purple-400 mb-4">📊 Verdict</h4>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div class="text-center">
-                            <div class="text-3xl mb-2">🏆</div>
-                            <div class="text-sm text-gray-400">Aspect Wins</div>
-                            <div class="text-lg font-bold text-white mt-1">${overallWinner[0]}</div>
-                            <div class="text-xs text-purple-400">${overallWinner[1]}/${totalAspects} aspects</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-3xl mb-2">💬</div>
-                            <div class="text-sm text-gray-400">Most Discussed</div>
-                            <div class="text-lg font-bold text-white mt-1">${mostDiscussed.item}</div>
-                            <div class="text-xs text-gray-500">${formatNumber(mostDiscussed.totalMentions)} mentions</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-3xl mb-2">👍</div>
-                            <div class="text-sm text-gray-400">Most Praised</div>
-                            <div class="text-lg font-bold text-white mt-1">${sortedByPos[0].item}</div>
-                            <div class="text-xs text-green-400">${formatNumber(sortedByPos[0].posCount)} positive</div>
-                        </div>
-                    </div>
-                </div>
+            // 1. Satisfaction Score Table
+            let satHtml = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            ${items.map((item, i) => getItemHeader(item, i)).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="text-gray-300 font-medium">Total Mentions</td>
+                            ${itemStats.map(s => `<td><span class="heat-cell heat-high">${formatNumber(s.totalMentions)}</span></td>`).join('')}
+                        </tr>
+                        <tr>
+                            <td class="text-gray-300 font-medium">👍 Positive</td>
+                            ${itemStats.map(s => `<td><span class="text-green-400 font-medium">${formatNumber(s.posCount)}</span></td>`).join('')}
+                        </tr>
+                        <tr>
+                            <td class="text-gray-300 font-medium">👎 Negative</td>
+                            ${itemStats.map(s => `<td><span class="text-red-400 font-medium">${formatNumber(s.negCount)}</span></td>`).join('')}
+                        </tr>
+                        <tr>
+                            <td class="text-gray-300 font-medium">Positive Ratio</td>
+                            ${itemStats.map(s => {
+                                const ratio = (s.posCount + s.negCount) > 0 ? s.posCount / (s.posCount + s.negCount) : 0;
+                                return `<td><span class="heat-cell ${getRatioHeatClass(ratio)}">${Math.round(ratio * 100)}%</span></td>`;
+                            }).join('')}
+                        </tr>
+                    </tbody>
+                </table>
             `;
+            document.getElementById('satisfactionScoreTable').innerHTML = satHtml;
             
-            // 1. Overview Section (raw counts only)
-            html += `
-                <div class="mb-8">
-                    <h4 class="text-md font-semibold text-purple-400 mb-4">Overview</h4>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                ${items.map((item, i) => getItemHeader(item, i)).join('')}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="text-gray-300 font-medium">Total Mentions</td>
-                                ${itemStats.map(s => `<td><span class="heat-cell heat-high">${formatNumber(s.totalMentions)}</span></td>`).join('')}
-                            </tr>
-                            <tr>
-                                <td class="text-gray-300 font-medium">👍 Positive</td>
-                                ${itemStats.map(s => `<td><span class="text-green-400 font-medium">${formatNumber(s.posCount)}</span></td>`).join('')}
-                            </tr>
-                            <tr>
-                                <td class="text-gray-300 font-medium">👎 Negative</td>
-                                ${itemStats.map(s => `<td><span class="text-red-400 font-medium">${formatNumber(s.negCount)}</span></td>`).join('')}
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            `;
-            
-            // Calculate total mentions per item for SOV
-            const totalMentionsPerItem = items.map(item => {
-                return data[item]?.aspects?.reduce((s, a) => s + (a.total_mentions || 0), 0) || 1;
-            });
-            
-            // 2. Driver Analysis Section (Share of Voice - keep as % since it's proportional)
-            html += `
-                <div class="mb-8">
-                    <h4 class="text-md font-semibold text-purple-400 mb-4">Driver Analysis (Share of Voice)</h4>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                ${items.map((item, i) => getItemHeader(item, i)).join('')}
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-            
-            for (const aspect of aspects) {
-                let totalSov = 0;
-                let validCount = 0;
-                items.forEach((item, idx) => {
-                    const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
-                    const mentions = aspectData?.total_mentions || 0;
-                    if (mentions >= 10) {
-                        totalSov += Math.round(mentions * 100 / totalMentionsPerItem[idx]);
-                        validCount++;
-                    }
-                });
-                
-                if (validCount === 0) continue;
-                
-                const avgSov = totalSov / Math.max(validCount, 1);
-                if (avgSov < 3) continue;
-                
-                html += `<tr><td class="text-gray-300">${ASPECT_ICONS[aspect] || ''} ${aspect}</td>`;
-                items.forEach((item, idx) => {
-                    const aspectData = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
-                    const mentions = aspectData?.total_mentions || 0;
-                    if (mentions < 10) {
-                        html += `<td><span class="heat-cell heat-neutral">--</span></td>`;
-                    } else {
-                        const sov = Math.round(mentions * 100 / totalMentionsPerItem[idx]);
-                        html += `<td><span class="heat-cell ${getSovHeatClass(sov)}">${sov}%</span></td>`;
-                    }
-                });
-                html += `</tr>`;
-            }
-            
-            html += `</tbody></table></div>`;
-            
-            // 3. Aspect-wise Comparison Section (Display: raw counts, Winner: by ratio)
-            html += `
-                <div class="mb-8">
-                    <h4 class="text-md font-semibold text-purple-400 mb-4">Aspect-wise Comparison</h4>
-                    <p class="text-xs text-gray-500 mb-3">👍 Positive / 👎 Negative mention counts. Winner = highest positive ratio.</p>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Aspect</th>
-                                ${items.map((item, i) => getItemHeader(item, i)).join('')}
-                                <th class="text-center" style="width: 80px;">Edge</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+            // 2. Driver Analysis Table (Aspect breakdown)
+            let driverHtml = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Aspect</th>
+                            ${items.map((item, i) => getItemHeader(item, i)).join('')}
+                            <th class="text-center" style="width: 80px;">Winner</th>
+                        </tr>
+                    </thead>
+                    <tbody>
             `;
             
             for (const aspect of aspects) {
@@ -1250,46 +1286,36 @@
                     const pos = aspectData?.positive_count || 0;
                     const neg = aspectData?.negative_count || 0;
                     const mentions = aspectData?.total_mentions || 0;
-                    // Calculate positive ratio for fair comparison
                     const ratio = (pos + neg) > 0 ? pos / (pos + neg) : 0;
-                    return {
-                        posCount: pos,
-                        negCount: neg,
-                        mentions: mentions,
-                        ratio: ratio
-                    };
+                    return { posCount: pos, negCount: neg, mentions, ratio };
                 });
                 
-                // Skip if all items have < 10 mentions for this aspect
-                const validScores = aspectInfo.filter(a => a.mentions >= 10);
+                const validScores = aspectInfo.filter(a => a.mentions >= 5);
                 if (validScores.length === 0) continue;
                 
-                // Winner = highest positive RATIO among valid items (fair comparison)
-                const ratios = aspectInfo.map(a => a.mentions >= 10 ? a.ratio : -1);
+                const ratios = aspectInfo.map(a => a.mentions >= 5 ? a.ratio : -1);
                 const maxRatio = Math.max(...ratios.filter(r => r >= 0));
-                
                 const winnerIdx = ratios.indexOf(maxRatio);
                 const winner = maxRatio >= 0 ? items[winnerIdx] : '-';
                 
-                html += `<tr><td class="text-gray-300 font-medium">${ASPECT_ICONS[aspect] || ''} ${aspect}</td>`;
+                driverHtml += `<tr><td class="text-gray-300 font-medium">${ASPECT_ICONS[aspect] || ''} ${aspect}</td>`;
                 aspectInfo.forEach((info, idx) => {
-                    if (info.mentions < 10) {
-                        html += `<td><span class="heat-cell heat-neutral">--</span></td>`;
+                    if (info.mentions < 5) {
+                        driverHtml += `<td><span class="heat-cell heat-neutral">--</span></td>`;
                     } else {
-                        const isWinner = info.ratio === maxRatio && info.mentions >= 10;
-                        html += `<td class="${isWinner ? 'winner-cell rounded px-2 py-1' : ''}">
-                            <span class="text-green-400">👍 ${formatNumber(info.posCount)}</span>
-                            <span class="text-gray-500 mx-1">/</span>
-                            <span class="text-red-400">👎 ${formatNumber(info.negCount)}</span>
+                        const isWinner = info.ratio === maxRatio;
+                        driverHtml += `<td class="${isWinner ? 'winner-cell rounded' : ''}">
+                            <span class="heat-cell ${getRatioHeatClass(info.ratio)}">${Math.round(info.ratio * 100)}%</span>
                         </td>`;
                     }
                 });
-                html += `<td class="text-purple-400 font-medium text-sm">${winner}</td></tr>`;
+                driverHtml += `<td class="text-purple-400 font-medium text-sm">${winner}</td></tr>`;
             }
             
-            html += `</tbody></table></div>`;
+            driverHtml += `</tbody></table>`;
+            document.getElementById('driverAnalysisTable').innerHTML = driverHtml;
             
-            // 4. Attribute Wins Section (based on positive RATIO, display aspect names only)
+            // 3. Attribute Wins Section
             const wins = {};
             items.forEach(item => { wins[item] = []; });
             
@@ -1300,50 +1326,34 @@
                     const neg = aspectData?.negative_count || 0;
                     const mentions = aspectData?.total_mentions || 0;
                     const ratio = (pos + neg) > 0 ? pos / (pos + neg) : 0;
-                    return { 
-                        item, 
-                        ratio: mentions >= 10 ? ratio : -1,
-                        mentions 
-                    };
+                    return { item, ratio: mentions >= 5 ? ratio : -1, mentions };
                 });
                 const validScores = scores.filter(s => s.ratio >= 0);
                 if (validScores.length === 0) continue;
                 
                 const maxRatio = Math.max(...validScores.map(s => s.ratio));
-                
                 const winner = validScores.find(s => s.ratio === maxRatio);
                 if (winner) wins[winner.item].push(aspect);
             }
             
-            html += `
-                <div>
-                    <h4 class="text-md font-semibold text-purple-400 mb-2">Attribute Wins 🏆</h4>
-                    <p class="text-xs text-gray-500 mb-4">Aspects where each ${compareMode === 'brand' ? 'brand' : 'model'} has the highest positive ratio.</p>
-                    <div class="grid grid-cols-${items.length} gap-4">
-            `;
-            
+            let winsHtml = '';
             items.forEach((item, i) => {
                 const itemWins = wins[item] || [];
-                const nameClass = getNameSizeClass(item);
-                html += `
+                winsHtml += `
                     <div class="wins-column">
                         <h4 class="flex items-center gap-2">
                             <span class="inline-block w-3 h-3 rounded-full flex-shrink-0" style="background: ${itemColors[i]}"></span>
-                            <span class="truncate ${nameClass === 'long' ? 'text-xs' : nameClass === 'medium' ? 'text-sm' : ''}" title="${item}">${item}</span>
+                            <span class="truncate">${item}</span>
                             <span class="text-gray-500 flex-shrink-0">(${itemWins.length})</span>
                         </h4>
                         ${itemWins.length > 0 
-                            ? itemWins.map(aspect => {
-                                return `<div class="win-item"><span class="aspect">${ASPECT_ICONS[aspect] || ''} ${aspect}</span></div>`;
-                            }).join('')
+                            ? itemWins.map(aspect => `<div class="win-item"><span class="aspect">${ASPECT_ICONS[aspect] || ''} ${aspect}</span></div>`).join('')
                             : '<p class="text-xs text-gray-500 mt-2">No winning attributes</p>'
                         }
                     </div>
                 `;
             });
-            
-            html += `</div></div>`;
-            document.getElementById('comparisonContent').innerHTML = html;
+            document.getElementById('correspondenceChart').innerHTML = winsHtml;
         }
         
         // ═══════════════════════════════════════════
