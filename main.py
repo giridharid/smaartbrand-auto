@@ -953,3 +953,361 @@ async def get_rd_insights(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─────────────────────────────────────────
+# CHAT API - Data Agent Integration
+# ─────────────────────────────────────────
+import re
+from fastapi import Request
+
+AGENT_ID = "agent_2ec1baf1-c0b3-47cb-acff-72bc0d34c930"
+LOCATION = "global"
+PRODUCT_PREFIX = "CAR_" if VEHICLE_TYPE == "car" else "BIKE_"
+
+
+class ChatRequest(BaseModel):
+    message: str
+    context: Optional[dict] = None
+
+
+def detect_intent(message: str) -> dict:
+    """Parse user message to detect intent, brand, aspects, etc."""
+    message_lower = message.lower()
+    
+    intent = {
+        "brand": None,
+        "model": None,
+        "compare": False,
+        "aspects": [],
+        "demographic": None,
+        "analysis_type": "general"
+    }
+    
+    # Brand detection
+    car_brands = ["maruti", "tata", "hyundai", "mahindra", "kia", "honda", "toyota", "mg", "skoda", "volkswagen", "jeep", "citroen", "renault", "nissan", "ford"]
+    bike_brands = ["royal enfield", "honda", "hero", "bajaj", "tvs", "yamaha", "ktm", "suzuki", "kawasaki", "bmw", "harley", "triumph", "jawa", "ather", "ola"]
+    
+    brands = car_brands if VEHICLE_TYPE == "car" else bike_brands
+    for brand in brands:
+        if brand in message_lower:
+            intent["brand"] = brand.title()
+            break
+    
+    # Comparison detection
+    if any(word in message_lower for word in ["compare", "vs", "versus", "against", "better", "difference"]):
+        intent["compare"] = True
+    
+    # Persona detection
+    personas = {
+        "enthusiast": "enthusiast",
+        "value seeker": "value_seeker",
+        "budget": "value_seeker",
+        "family": "family",
+        "commuter": "commuter",
+        "first buyer": "first_buyer",
+        "tech": "tech"
+    }
+    for key, value in personas.items():
+        if key in message_lower:
+            intent["demographic"] = {"persona": value}
+            break
+    
+    # Gender detection
+    if any(word in message_lower for word in ["women", "female", "woman"]):
+        intent["demographic"] = intent["demographic"] or {}
+        intent["demographic"]["gender"] = "F"
+    elif any(word in message_lower for word in ["men", "male", "man"]):
+        intent["demographic"] = intent["demographic"] or {}
+        intent["demographic"]["gender"] = "M"
+    
+    # Analysis type detection
+    analysis_keywords = {
+        "driver": ["driver", "what drives", "why do"],
+        "swot": ["strength", "weakness", "swot"],
+        "improvements": ["improve", "fix", "pain point", "problem", "issue"],
+        "features": ["feature", "want", "wish", "need", "request"],
+        "faq": ["faq", "questions", "frequently asked"],
+        "comparison": ["compare", "vs", "versus"]
+    }
+    
+    for analysis_type, keywords in analysis_keywords.items():
+        if any(kw in message_lower for kw in keywords):
+            intent["analysis_type"] = analysis_type
+            break
+    
+    # Aspect detection
+    aspects = ["performance", "comfort", "safety", "features", "space", "mileage", "ownership", "value", "brand", "style", "handling", "build"]
+    for aspect in aspects:
+        if aspect in message_lower:
+            intent["aspects"].append(aspect.title())
+    
+    return intent
+
+
+def gather_context_data(intent: dict) -> dict:
+    """Query BigQuery for relevant data based on intent"""
+    client = get_client()
+    if not client:
+        return {}
+    
+    data = {}
+    brand = intent.get("brand")
+    
+    try:
+        # Brand satisfaction
+        if brand:
+            query = f"""
+            SELECT aspect, 
+                SUM(CASE WHEN sentiment = 1 THEN 1 ELSE 0 END) as positive_count,
+                SUM(CASE WHEN sentiment = -1 THEN 1 ELSE 0 END) as negative_count,
+                COUNT(*) as total,
+                ROUND(SUM(CASE WHEN sentiment = 1 THEN 1 ELSE 0 END) * 100.0 / 
+                    NULLIF(SUM(CASE WHEN sentiment = 1 THEN 1 ELSE 0 END) + SUM(CASE WHEN sentiment = -1 THEN 1 ELSE 0 END), 0), 1) as satisfaction
+            FROM `{PROJECT}.{DATASET}.aspects`
+            WHERE brand = '{brand}' AND product_id LIKE '{PRODUCT_PREFIX}%'
+            GROUP BY aspect
+            ORDER BY total DESC
+            """
+            result = client.query(query).to_dataframe()
+            data["brand_satisfaction"] = [
+                {
+                    "brand": brand,
+                    "aspect": row['aspect'],
+                    "positive": int(row['positive_count']),
+                    "negative": int(row['negative_count']),
+                    "satisfaction": float(row['satisfaction']) if row['satisfaction'] else 0
+                }
+                for _, row in result.iterrows()
+            ]
+        
+        # Demographics if needed
+        if intent.get("demographic") or True:  # Always get demographics
+            demo_query = f"""
+            SELECT persona, gender, COUNT(*) as count
+            FROM `{PROJECT}.{DATASET}.aspects`
+            WHERE product_id LIKE '{PRODUCT_PREFIX}%'
+            {'AND brand = "' + brand + '"' if brand else ''}
+            AND persona IS NOT NULL AND persona != ''
+            GROUP BY persona, gender
+            ORDER BY count DESC
+            """
+            demo_result = client.query(demo_query).to_dataframe()
+            data["demographics"] = [
+                {"persona": row['persona'], "gender": row['gender'], "count": int(row['count'])}
+                for _, row in demo_result.iterrows()
+            ]
+        
+        # Feature requests for R&D queries
+        if intent.get("analysis_type") in ["features", "improvements"]:
+            feat_query = f"""
+            SELECT features_sought, COUNT(*) as mentions
+            FROM `{PROJECT}.{DATASET}.rd_insights`
+            WHERE product_id LIKE '{PRODUCT_PREFIX}%'
+            {'AND brand = "' + brand + '"' if brand else ''}
+            AND features_sought IS NOT NULL AND features_sought != ''
+            GROUP BY features_sought
+            ORDER BY mentions DESC
+            LIMIT 15
+            """
+            feat_result = client.query(feat_query).to_dataframe()
+            data["feature_requests"] = [
+                {"feature": row['features_sought'], "mentions": int(row['mentions'])}
+                for _, row in feat_result.iterrows()
+            ]
+        
+        # Competitor comparison
+        if intent.get("compare") or not brand:
+            comp_query = f"""
+            SELECT brand,
+                SUM(CASE WHEN sentiment = 1 THEN 1 ELSE 0 END) as positive,
+                SUM(CASE WHEN sentiment = -1 THEN 1 ELSE 0 END) as negative,
+                ROUND(SUM(CASE WHEN sentiment = 1 THEN 1 ELSE 0 END) * 100.0 / 
+                    NULLIF(SUM(CASE WHEN sentiment = 1 THEN 1 ELSE 0 END) + SUM(CASE WHEN sentiment = -1 THEN 1 ELSE 0 END), 0), 1) as satisfaction
+            FROM `{PROJECT}.{DATASET}.aspects`
+            WHERE product_id LIKE '{PRODUCT_PREFIX}%'
+            GROUP BY brand
+            ORDER BY (positive + negative) DESC
+            LIMIT 10
+            """
+            comp_result = client.query(comp_query).to_dataframe()
+            data["brand_comparison"] = [
+                {"brand": row['brand'], "positive": int(row['positive']), "negative": int(row['negative']), "satisfaction": float(row['satisfaction']) if row['satisfaction'] else 0}
+                for _, row in comp_result.iterrows()
+            ]
+    
+    except Exception as e:
+        print(f"[CHAT] Data gathering error: {e}")
+    
+    return data
+
+
+def format_data_for_llm(bq_data: dict, intent: dict) -> str:
+    """Format BigQuery data as readable context for LLM"""
+    sections = ["=== EXACT DATA FROM DATABASE ===", "USE THESE NUMBERS EXACTLY — DO NOT MODIFY OR INVENT", ""]
+    
+    # Brand satisfaction
+    if "brand_satisfaction" in bq_data and bq_data["brand_satisfaction"]:
+        brand = bq_data["brand_satisfaction"][0].get("brand", "Brand")
+        sections.append(f"## {brand} Satisfaction by Aspect")
+        for row in bq_data["brand_satisfaction"]:
+            sections.append(f"- {row['aspect']}: {row['satisfaction']}% satisfaction (👍 {row['positive']} / 👎 {row['negative']})")
+        sections.append("")
+    
+    # Demographics
+    if "demographics" in bq_data and bq_data["demographics"]:
+        sections.append("## Buyer Demographics")
+        total = sum(row['count'] for row in bq_data["demographics"])
+        for row in bq_data["demographics"][:10]:
+            pct = round(row['count'] * 100 / total, 1)
+            sections.append(f"- {row['persona']} ({row['gender']}): {pct}% ({row['count']} mentions)")
+        sections.append("")
+    
+    # Feature requests
+    if "feature_requests" in bq_data and bq_data["feature_requests"]:
+        sections.append("## Feature Requests (R&D Signals)")
+        for row in bq_data["feature_requests"]:
+            sections.append(f"- \"{row['feature']}\": {row['mentions']} mentions")
+        sections.append("")
+    
+    # Brand comparison
+    if "brand_comparison" in bq_data and bq_data["brand_comparison"]:
+        sections.append("## Brand Comparison (Market Overview)")
+        for i, row in enumerate(bq_data["brand_comparison"], 1):
+            marker = "👑" if i == 1 else f"{i}."
+            sections.append(f"{marker} {row['brand']}: {row['satisfaction']}% satisfaction (👍 {row['positive']} / 👎 {row['negative']})")
+        sections.append("")
+    
+    return "\n".join(sections)
+
+
+def get_system_prompt() -> str:
+    """Get vehicle-specific system prompt"""
+    vehicle_label = "Car" if VEHICLE_TYPE == "car" else "Bike"
+    buyer_label = "Buyer" if VEHICLE_TYPE == "car" else "Rider"
+    
+    return f"""You are SmaartAnalyst, an automotive decision intelligence assistant for {vehicle_label}s.
+
+=== CRITICAL: USE PROVIDED DATA EXACTLY ===
+I am providing you with EXACT data from our database. 
+DO NOT query the database yourself.
+DO NOT modify, round differently, or invent any numbers.
+USE THE EXACT PERCENTAGES AND COUNTS PROVIDED BELOW.
+If data is not provided, say "data not available" — do NOT make up numbers.
+
+=== WHO YOU SERVE ===
+{vehicle_label} brand teams: Brand Manager, Product Planning, R&D, Marketing, Sales, Service
+
+=== RESPONSE FORMAT ===
+
+📊 **Insight**: [2-3 sentences using the EXACT counts/ratios from the data provided]
+
+👥 **{buyer_label} Mix**: [Use EXACT persona percentages from data]
+
+🎯 **Actions by Team**:
+
+👔 Brand Manager: [positioning based on data strengths]
+
+📢 Marketing: 
+   ✓ PROMOTE: [top positive aspects from data]
+   ✗ ADDRESS: [aspects needing attention from data]
+
+🔬 R&D / Product: [feature requests from data]
+🔧 Service: [if Ownership issues in data]
+
+Include 3-4 most relevant teams only.
+
+=== RULES ===
+1. USE EXACT NUMBERS from data — no rounding, no inventing
+2. Positive Ratio = positive / (positive + negative) — use this for comparisons
+3. Be direct — max 250 words
+4. If data not provided, say "data not available" """
+
+
+@app.post("/api/chat")
+async def chat(request: Request, chat_request: ChatRequest):
+    """Chat with SmaartAnalyst - Data-First approach"""
+    try:
+        user_message = chat_request.message
+        context_brand = chat_request.context.get("brand") if chat_request.context else None
+        
+        # Step 1: Parse intent
+        intent = detect_intent(user_message)
+        
+        # Use context brand if no brand detected
+        if not intent["brand"] and context_brand:
+            intent["brand"] = context_brand
+        
+        # Step 2: Query BigQuery for real data
+        bq_data = gather_context_data(intent)
+        
+        # Step 3: Format data for LLM
+        data_context = format_data_for_llm(bq_data, intent)
+        
+        # Step 4: Call Gemini
+        try:
+            import google.generativeai as genai
+            
+            gcp_creds = os.environ.get("GCP_CREDENTIALS_JSON", "")
+            api_key = os.environ.get("GEMINI_API_KEY", "")
+            
+            if api_key:
+                genai.configure(api_key=api_key)
+            elif gcp_creds:
+                # Use service account
+                if gcp_creds.startswith("{"):
+                    creds_dict = json.loads(gcp_creds)
+                else:
+                    padding = 4 - len(gcp_creds) % 4
+                    if padding != 4:
+                        gcp_creds += "=" * padding
+                    creds_dict = json.loads(base64.b64decode(gcp_creds).decode('utf-8'))
+                # Note: genai doesn't directly support service account, use API key
+            
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            
+            system_prompt = get_system_prompt()
+            full_prompt = f"""{system_prompt}
+
+{data_context}
+
+=== USER QUERY ===
+{user_message}
+
+Remember: Use the EXACT numbers from the data above. Do NOT invent any numbers."""
+            
+            response = model.generate_content(full_prompt)
+            response_text = response.text
+            
+            return {
+                "response": response_text,
+                "data_used": {
+                    "detected_brand": intent.get("brand"),
+                    "analysis_type": intent.get("analysis_type")
+                }
+            }
+        
+        except Exception as genai_error:
+            print(f"[CHAT] Gemini error: {genai_error}")
+            
+            # Fallback: Return formatted data directly
+            fallback_response = f"""📊 **{intent.get('brand', 'Brand')} Analysis**
+
+{data_context}
+
+_For detailed AI insights, please configure GEMINI_API_KEY._"""
+            
+            return {
+                "response": fallback_response,
+                "data_used": {"detected_brand": intent.get("brand")}
+            }
+    
+    except Exception as e:
+        print(f"[CHAT] Error: {e}")
+        traceback.print_exc()
+        return {"response": f"Error: {str(e)}", "data_used": None}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8080)

@@ -294,24 +294,44 @@
 
     <!-- Chat Panel -->
     <div id="chatOverlay" class="fixed inset-0 bg-black/50 z-40 hidden"></div>
-    <div id="chatPanel" class="chat-panel fixed top-0 right-0 h-full w-full md:w-96 glass z-50 flex flex-col">
+    <div id="chatPanel" class="chat-panel fixed top-0 right-0 h-full w-full md:w-[450px] glass z-50 flex flex-col">
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="text-xl">💬</span>
-                <span id="chatContextLabel" class="font-semibold">SmaartAnalyst</span>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">🤖</div>
+                <div>
+                    <h3 class="font-semibold">SmaartAnalyst</h3>
+                    <p id="chatContextLabel" class="text-xs text-gray-400">Decision Intelligence</p>
+                </div>
             </div>
             <div class="flex items-center gap-2">
-                <button id="chatCollapse" class="p-1 hover:bg-white/10 rounded">◀</button>
-                <button id="chatClose" class="p-1 hover:bg-white/10 rounded">✕</button>
+                <button id="chatClose" class="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white">✕</button>
             </div>
         </div>
+        
+        <!-- Quick questions -->
+        <div class="p-3 border-b border-white/10">
+            <p class="text-xs text-gray-400 mb-2">Quick questions:</p>
+            <div class="flex flex-wrap gap-2">
+                <button class="quick-btn glass text-xs px-3 py-1.5 rounded-full hover:bg-white/10" data-question="What are the key strengths?">✅ Strengths</button>
+                <button class="quick-btn glass text-xs px-3 py-1.5 rounded-full hover:bg-white/10" data-question="What needs improvement?">🔧 Improve</button>
+                <button class="quick-btn glass text-xs px-3 py-1.5 rounded-full hover:bg-white/10" data-question="What features do buyers want?">💡 Features</button>
+                <button class="quick-btn glass text-xs px-3 py-1.5 rounded-full hover:bg-white/10" data-question="Compare with competitors">📊 Compare</button>
+            </div>
+        </div>
+        
         <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4">
-            <div class="text-sm text-gray-400 text-center py-4">Ask me anything about the data...</div>
+            <div class="flex gap-3">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center flex-shrink-0">🤖</div>
+                <div class="glass rounded-2xl rounded-tl-none p-4 max-w-[85%]">
+                    <p class="text-sm">Hi! I'm SmaartAnalyst. Select a brand and ask me about satisfaction scores, buyer demographics, feature requests, or competitive positioning.</p>
+                </div>
+            </div>
         </div>
+        
         <div class="p-4 border-t border-white/10">
             <div class="flex gap-2">
-                <input id="chatInput" type="text" placeholder="Ask a question..." class="flex-1 glass-dark px-4 py-2 rounded-lg text-sm focus:outline-none">
-                <button id="chatSend" class="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg text-sm font-medium">Send</button>
+                <input id="chatInput" type="text" placeholder="Ask about brands, features, demographics..." class="flex-1 glass-dark px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <button id="chatSend" class="px-4 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:opacity-90 transition">➤</button>
             </div>
         </div>
     </div>
@@ -519,10 +539,14 @@
                 });
             });
             
-            // Chat
+            // Chat toggle and close
             document.getElementById('chatToggle').addEventListener('click', () => {
                 document.getElementById('chatPanel').classList.add('open');
                 document.getElementById('chatOverlay').classList.remove('hidden');
+                // Update context label
+                if (currentBrand) {
+                    document.getElementById('chatContextLabel').textContent = `Analyzing: ${currentModel || currentBrand}`;
+                }
             });
             document.getElementById('chatClose').addEventListener('click', () => {
                 document.getElementById('chatPanel').classList.remove('open');
@@ -532,6 +556,106 @@
                 document.getElementById('chatPanel').classList.remove('open');
                 document.getElementById('chatOverlay').classList.add('hidden');
             });
+            
+            // Chat send
+            document.getElementById('chatSend').addEventListener('click', () => sendChatMessage());
+            document.getElementById('chatInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendChatMessage();
+            });
+            
+            // Quick question buttons
+            document.querySelectorAll('.quick-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const question = btn.dataset.question;
+                    document.getElementById('chatInput').value = question;
+                    sendChatMessage();
+                });
+            });
+        }
+        
+        // ═══════════════════════════════════════════
+        // CHAT FUNCTIONS
+        // ═══════════════════════════════════════════
+        let chatContext = { brand: null };
+        
+        function addChatMessage(content, isUser = false) {
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = `flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`;
+            const avatar = isUser ? '👤' : '🤖';
+            const bgClass = isUser ? 'bg-purple-600/50 rounded-tr-none' : 'glass rounded-tl-none';
+            
+            // Parse markdown for bot messages
+            const displayContent = isUser ? content : marked.parse(content);
+            
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded-full ${isUser ? 'bg-gray-600' : 'bg-gradient-to-br from-purple-500 to-indigo-600'} flex items-center justify-center flex-shrink-0">${avatar}</div>
+                <div class="${bgClass} rounded-2xl p-4 max-w-[85%]">
+                    <div class="text-sm message-content">${displayContent}</div>
+                </div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function showTypingIndicator() {
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.id = 'typingIndicator';
+            div.className = 'flex gap-3';
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">🤖</div>
+                <div class="glass rounded-2xl rounded-tl-none p-4">
+                    <div class="flex gap-1">
+                        <span class="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                        <span class="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                        <span class="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            // Add user message
+            addChatMessage(message, true);
+            input.value = '';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            try {
+                // Build context
+                chatContext.brand = currentBrand;
+                
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, context: chatContext })
+                });
+                
+                const data = await res.json();
+                
+                // Remove typing indicator
+                document.getElementById('typingIndicator')?.remove();
+                
+                // Add bot response
+                addChatMessage(data.response);
+                
+                // Update context if brand was detected
+                if (data.data_used?.detected_brand) {
+                    chatContext.brand = data.data_used.detected_brand;
+                }
+            } catch (e) {
+                document.getElementById('typingIndicator')?.remove();
+                addChatMessage('Sorry, something went wrong. Please try again.');
+                console.error('Chat error:', e);
+            }
         }
 
         // ═══════════════════════════════════════════
