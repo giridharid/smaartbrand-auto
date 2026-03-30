@@ -232,8 +232,8 @@
                         </div>
                         <div class="glass rounded-2xl p-6">
                             <div class="flex items-center gap-2 mb-4">
-                                <span class="text-xl">🔧</span>
-                                <h3 class="text-lg font-semibold">Pain Points</h3>
+                                <span class="text-xl">🎯</span>
+                                <h3 class="text-lg font-semibold">Improvement Areas</h3>
                             </div>
                             <div id="painPointsContainer" class="space-y-2 max-h-96 overflow-y-auto"></div>
                         </div>
@@ -692,16 +692,28 @@
                 const res = await fetch(`/api/rd-insights?${params}`);
                 const data = await res.json();
                 
-                // API returns { categorized: { feature_requests: [...], pain_points: [...], improvements: [...] } }
-                const featureRequests = data.categorized?.feature_requests || [];
-                // Use pain_points, or fall back to improvements if empty
+                // API returns { categorized: { feature_requests: [...], pain_points: [...], improvements: [...] }, insights: [...] }
+                let featureRequests = data.categorized?.feature_requests || [];
                 let painPoints = data.categorized?.pain_points || [];
+                
+                // If pain_points is empty, try improvements
                 if (painPoints.length === 0) {
                     painPoints = data.categorized?.improvements || [];
                 }
-                // If still empty, show some from all insights that aren't feature requests
-                if (painPoints.length === 0 && data.insights) {
-                    painPoints = data.insights.filter(i => i.category !== 'feature_request').slice(0, 10);
+                
+                // If still empty, split the full insights list
+                if (painPoints.length === 0 && data.insights && data.insights.length > 0) {
+                    // Take second half of insights as "pain points" (things to improve)
+                    const allInsights = data.insights;
+                    const midPoint = Math.ceil(allInsights.length / 2);
+                    // Feature requests get first half (already populated from categorized)
+                    // Pain points get second half
+                    painPoints = allInsights.slice(midPoint, midPoint + 10);
+                }
+                
+                // If feature requests is also sparse, populate from insights
+                if (featureRequests.length < 5 && data.insights && data.insights.length > 0) {
+                    featureRequests = data.insights.slice(0, 10);
                 }
                 
                 document.getElementById('featureRequestsContainer').innerHTML = featureRequests.length > 0
@@ -860,26 +872,42 @@
             
             let satHtml = `<table class="data-table"><thead><tr><th>Metric</th>${items.map((it, i) => getHeader(it, i)).join('')}</tr></thead><tbody>`;
             satHtml += `<tr><td class="text-gray-300">Total Mentions</td>${stats.map(s => `<td><span class="heat-cell heat-high">${formatNumber(s.total)}</span></td>`).join('')}</tr>`;
-            satHtml += `<tr><td class="text-gray-300">👍 Positive</td>${stats.map(s => `<td class="text-green-400">${formatNumber(s.pos)}</td>`).join('')}</tr>`;
-            satHtml += `<tr><td class="text-gray-300">👎 Negative</td>${stats.map(s => `<td class="text-red-400">${formatNumber(s.neg)}</td>`).join('')}</tr>`;
-            satHtml += `<tr><td class="text-gray-300">Positive Ratio</td>${stats.map(s => { const r = s.pos / (s.pos + s.neg + 0.001); return `<td><span class="heat-cell ${getRatioClass(r)}">${Math.round(r * 100)}%</span></td>`; }).join('')}</tr>`;
+            satHtml += `<tr><td class="text-gray-300">👍 Positive</td>${stats.map(s => `<td class="text-green-400 font-medium">${formatNumber(s.pos)}</td>`).join('')}</tr>`;
+            satHtml += `<tr><td class="text-gray-300">👎 Negative</td>${stats.map(s => `<td class="text-red-400 font-medium">${formatNumber(s.neg)}</td>`).join('')}</tr>`;
             satHtml += '</tbody></table>';
             document.getElementById('satisfactionScoreTable').innerHTML = satHtml;
             
-            // Driver Analysis
+            // Driver Analysis - Show counts like old version: 👍 X / 👎 Y
             let driverHtml = `<table class="data-table"><thead><tr><th>Aspect</th>${items.map((it, i) => getHeader(it, i)).join('')}<th>Winner</th></tr></thead><tbody>`;
             Array.from(aspects).sort().forEach(aspect => {
                 const info = items.map(item => {
                     const ad = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
                     const pos = ad?.positive_count || 0, neg = ad?.negative_count || 0;
-                    return { pos, neg, ratio: pos / (pos + neg + 0.001) };
+                    const mentions = ad?.total_mentions || 0;
+                    return { pos, neg, mentions, ratio: (pos + neg) > 0 ? pos / (pos + neg) : 0 };
                 });
-                const maxRatio = Math.max(...info.map(i => i.ratio));
-                const winner = items[info.findIndex(i => i.ratio === maxRatio)];
+                
+                // Skip if all items have < 10 mentions
+                const validInfo = info.filter(i => i.mentions >= 10);
+                if (validInfo.length === 0) return;
+                
+                const validRatios = info.map(i => i.mentions >= 10 ? i.ratio : -1);
+                const maxRatio = Math.max(...validRatios.filter(r => r >= 0));
+                const winnerIdx = validRatios.indexOf(maxRatio);
+                const winner = maxRatio >= 0 ? items[winnerIdx] : '-';
+                
                 driverHtml += `<tr><td class="text-gray-300">${ASPECT_ICONS[aspect] || ''} ${aspect}</td>`;
-                info.forEach((i, idx) => {
-                    const isWinner = i.ratio === maxRatio;
-                    driverHtml += `<td class="${isWinner ? 'winner-cell rounded' : ''}"><span class="heat-cell ${getRatioClass(i.ratio)}">${Math.round(i.ratio * 100)}%</span></td>`;
+                info.forEach((inf, idx) => {
+                    if (inf.mentions < 10) {
+                        driverHtml += `<td><span class="heat-cell heat-neutral">--</span></td>`;
+                    } else {
+                        const isWinner = inf.ratio === maxRatio;
+                        driverHtml += `<td class="${isWinner ? 'winner-cell rounded px-2 py-1' : ''}">
+                            <span class="text-green-400">👍 ${formatNumber(inf.pos)}</span>
+                            <span class="text-gray-500 mx-1">/</span>
+                            <span class="text-red-400">👎 ${formatNumber(inf.neg)}</span>
+                        </td>`;
+                    }
                 });
                 driverHtml += `<td class="text-purple-400 font-medium">${winner}</td></tr>`;
             });
@@ -893,10 +921,14 @@
                 const scores = items.map(item => {
                     const ad = data[item]?.aspects?.find(a => (a.aspect_name || a.aspect) === aspect);
                     const pos = ad?.positive_count || 0, neg = ad?.negative_count || 0;
-                    return { item, ratio: pos / (pos + neg + 0.001) };
+                    const mentions = ad?.total_mentions || 0;
+                    return { item, ratio: mentions >= 10 ? pos / (pos + neg + 0.001) : -1, mentions };
                 });
-                const maxR = Math.max(...scores.map(s => s.ratio));
-                const winner = scores.find(s => s.ratio === maxR);
+                const validScores = scores.filter(s => s.ratio >= 0);
+                if (validScores.length === 0) return;
+                
+                const maxR = Math.max(...validScores.map(s => s.ratio));
+                const winner = validScores.find(s => s.ratio === maxR);
                 if (winner) wins[winner.item].push(aspect);
             });
             

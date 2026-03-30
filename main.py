@@ -884,9 +884,19 @@ async def get_rd_insights(
             category = "feature_request"
             feature_lower = feature.lower()
             
-            if any(w in feature_lower for w in ['problem', 'issue', 'bad', 'poor', 'worst', 'fail', 'broke']):
+            # Pain point keywords - expanded list
+            pain_keywords = ['problem', 'issue', 'bad', 'poor', 'worst', 'fail', 'broke', 'broken', 
+                           'expensive', 'costly', 'noise', 'noisy', 'uncomfortable', 'hard', 'difficult',
+                           'lack', 'lacking', 'weak', 'slow', 'heavy', 'small', 'tight', 'cramped',
+                           'unreliable', 'complaint', 'concern', 'disappointing', 'frustrated']
+            
+            # Improvement keywords
+            improvement_keywords = ['need', 'want', 'should', 'missing', 'add', 'include', 'improve',
+                                   'better', 'wish', 'hope', 'would be nice', 'could use']
+            
+            if any(w in feature_lower for w in pain_keywords):
                 category = "pain_point"
-            elif any(w in feature_lower for w in ['need', 'want', 'should', 'missing', 'add', 'include']):
+            elif any(w in feature_lower for w in improvement_keywords):
                 category = "improvement"
             elif any(w in feature_lower for w in ['vs', 'better than', 'compared', 'competitor']):
                 category = "competitive"
