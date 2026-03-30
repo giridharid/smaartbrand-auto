@@ -916,6 +916,35 @@ async def get_rd_insights(
             "competitive": [i for i in insights if i['category'] == 'competitive'][:10]
         }
         
+        # If pain_points is empty, get from aspects with high negative sentiment
+        if len(categorized["pain_points"]) == 0:
+            pain_query = f"""
+            SELECT 
+                aspect_name,
+                SUM(CASE WHEN sentiment = -1 THEN 1 ELSE 0 END) AS negative_count,
+                SUM(CASE WHEN sentiment = 1 THEN 1 ELSE 0 END) AS positive_count,
+                COUNT(*) as total_mentions
+            FROM `{PROJECT}.{DATASET}.aspects`
+            WHERE {' AND '.join(where_clauses).replace('features_sought IS NOT NULL', '1=1').replace("features_sought != ''", '1=1')}
+            GROUP BY aspect_name
+            HAVING negative_count > positive_count AND negative_count >= 5
+            ORDER BY negative_count DESC
+            LIMIT 10
+            """
+            try:
+                pain_result = c.query(pain_query).to_dataframe()
+                if not pain_result.empty:
+                    categorized["pain_points"] = [
+                        {
+                            "feature": f"{row['aspect_name']} issues",
+                            "mentions": int(row['negative_count']),
+                            "category": "pain_point"
+                        }
+                        for _, row in pain_result.iterrows()
+                    ]
+            except Exception as pain_e:
+                print(f"Pain points query error: {pain_e}")
+        
         return {
             "insights": insights[:50],
             "categorized": categorized,
