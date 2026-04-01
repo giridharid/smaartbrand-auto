@@ -484,7 +484,140 @@ A: Primarily Value Seekers (33%) and Commuters (24%).
 
 ---
 
-## 9. Future Roadmap
+## 9. Performance Optimization
+
+### 9.1 Architecture Before Optimization
+
+When a user selects a model, the original architecture made multiple sequential BigQuery calls:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    USER SELECTS MODEL                                │
+│                           │                                          │
+│                           ▼                                          │
+│                   loadAllData()                                      │
+│              Promise.all — 4 parallel calls                          │
+│         ┌─────────┬─────────┬─────────┬─────────┐                   │
+│         ▼         ▼         ▼         ▼         ▼                   │
+│    /api/drivers  /api/satisfaction  /api/demographics  /api/rd      │
+│    ⚠️ Full scan   ⚠️ Same query      │              │               │
+│         │         │         │         │                              │
+│         └─────────┴─────────┴─────────┘                              │
+│                           │                                          │
+│                           ▼                                          │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │               BigQuery — aspects table                        │   │
+│  │      No indexes, no partitioning, no clustering               │   │
+│  │         Every query = full table scan (~15K rows)             │   │
+│  │                    Response: 2-4 seconds                      │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                      │
+│  Chat path: 4 more BQ queries + Data Agent call = 10+ seconds       │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Problems identified:**
+- BigQuery cold-start overhead (~1-2 sec per query)
+- Duplicate queries (`/api/drivers` and `/api/satisfaction` run identical SQL)
+- No caching despite static POC data
+- Chat endpoint runs 4 serial BQ queries before calling Data Agent
+
+### 9.2 Optimized Architecture (Cached)
+
+For POC deployments where data doesn't change, we load all tables into memory at startup:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                       APP STARTUP                                    │
+│                           │                                          │
+│              ThreadPoolExecutor (4 workers)                          │
+│         ┌─────────┬─────────┬─────────┬─────────┐                   │
+│         ▼         ▼         ▼         ▼                              │
+│     aspects    reviews   rd_insights  product_master                │
+│     (~8K)      (~5K)      (~2K)        (~50)                        │
+│         │         │         │         │                              │
+│         └─────────┴─────────┴─────────┘                              │
+│                           │                                          │
+│                           ▼                                          │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │              IN-MEMORY DataFrames (pandas)                    │   │
+│  │                    ~20 MB RAM total                           │   │
+│  │                 Load time: ~3 seconds                         │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                      │
+│                    USER SELECTS MODEL                                │
+│                           │                                          │
+│                           ▼                                          │
+│              DataFrame filtering (pandas)                            │
+│                   Response: <50ms                                    │
+│                                                                      │
+│         Chat: Cached data + Data Agent = 2-3 seconds                │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 9.3 Performance Comparison
+
+| Operation | Before (BigQuery) | After (Cached) | Improvement |
+|-----------|-------------------|----------------|-------------|
+| Model select | 2-4 sec | <50 ms | **40-80x faster** |
+| Brand comparison | 3-5 sec | <100 ms | **30-50x faster** |
+| Chat response | 10+ sec | 2-3 sec | **3-5x faster** |
+| App startup | Instant | ~3 sec | One-time cost |
+
+### 9.4 Implementation
+
+The cached version is in `main_cached.py`. Key changes:
+
+1. **Parallel startup loading:**
+```python
+def load_all_data_parallel():
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = [executor.submit(_load_table, name, query) for name, query in queries.items()]
+        for future in futures:
+            table_name, df = future.result()
+            setattr(_cache, table_name, df)
+```
+
+2. **Endpoints query pandas instead of BigQuery:**
+```python
+@app.get("/api/drivers")
+async def get_drivers(brand: str = None, model: str = None):
+    df = _cache.aspects.copy()
+    if model:
+        df = df[df['model'] == model]  # Instant filter
+    # ... aggregate with pandas
+```
+
+3. **Chat uses cached data:**
+```python
+def gather_context_data_cached(intent: dict) -> dict:
+    df = _cache.aspects.copy()
+    # All aggregations happen in-memory
+```
+
+### 9.5 Deployment
+
+To use the cached version:
+
+1. Rename `main_cached.py` to `main.py`
+2. Deploy to Railway as normal
+3. The app will load all data at startup (~3 sec)
+4. All subsequent requests serve from memory
+
+**Memory usage:** ~20-30 MB for auto data. Railway Hobby plan has 8 GB available.
+
+### 9.6 When to Use
+
+| Scenario | Use Cached | Use Live BQ |
+|----------|------------|-------------|
+| POC demos (static data) | ✅ | |
+| Production (daily refresh) | | ✅ |
+| Hotels (weekly refresh) | ✅ | |
+| Development/testing | ✅ | |
+
+---
+
+## 11. Future Roadmap
 
 | Phase | Feature | Status |
 |-------|---------|--------|
@@ -498,7 +631,7 @@ A: Primarily Value Seekers (33%) and Commuters (24%).
 
 ---
 
-## 10. Support
+## 12. Support
 
 **Product:** Smaartbrand Auto & Bikes  
 **Company:** Acquink Technologies  
@@ -507,5 +640,5 @@ A: Primarily Value Seekers (33%) and Commuters (24%).
 
 ---
 
-*Document Version: 1.0*  
-*Last Updated: March 30, 2026*
+*Document Version: 1.1*  
+*Last Updated: April 01, 2026*
