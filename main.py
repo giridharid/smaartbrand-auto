@@ -271,7 +271,7 @@ def load_all_data_parallel():
             
             for future in futures:
                 try:
-                    table_name, df = future.result(timeout=60)  # 60 second timeout per table
+                    table_name, df = future.result(timeout=120)  # 2 min timeout per table
                     if df is not None:
                         setattr(_cache, table_name, df)
                         _cache.row_counts[table_name] = len(df)
@@ -287,18 +287,13 @@ def load_all_data_parallel():
         print(f"[CACHE ERROR] Parallel load failed: {e}")
         traceback.print_exc()
 
-def load_cache_background():
-    """Load cache in background thread so app starts immediately"""
-    import threading
-    thread = threading.Thread(target=load_all_data_parallel, daemon=True)
-    thread.start()
-
 @app.on_event("startup")
 async def startup():
+    print("[STARTUP] Initializing...")
     init_client()
-    # Load cache in background - app responds to health checks immediately
-    load_cache_background()
-    print("[STARTUP] App ready, cache loading in background...")
+    # Load cache SYNCHRONOUSLY - app won't be ready until cache is loaded
+    load_all_data_parallel()
+    print("[STARTUP] ✅ App ready with cached data")
 
 # ─────────────────────────────────────────
 # CONFIG ENDPOINT
@@ -346,7 +341,7 @@ async def health():
 @app.get("/api/brands")
 async def get_brands():
     if not _cache.is_ready():
-        raise HTTPException(status_code=503, detail="Cache still loading")
+        return []  # Return empty array instead of 503
     
     brands = _cache.aspects['brand'].dropna().unique().tolist()
     return sorted(brands)
@@ -354,7 +349,7 @@ async def get_brands():
 @app.get("/api/models")
 async def get_models(brand: Optional[str] = None):
     if not _cache.is_ready():
-        raise HTTPException(status_code=503, detail="Cache still loading")
+        return []
     
     df = _cache.aspects
     if brand:
@@ -366,7 +361,7 @@ async def get_models(brand: Optional[str] = None):
 @app.get("/api/segments")
 async def get_segments():
     if not _cache.is_ready():
-        raise HTTPException(status_code=503, detail="Cache still loading")
+        return []
     
     segments = _cache.product_master['segment'].dropna().unique().tolist()
     return sorted(segments)
@@ -379,7 +374,7 @@ async def get_drivers(
 ):
     """Get share of voice and satisfaction by aspect - FROM CACHE"""
     if not _cache.is_ready():
-        raise HTTPException(status_code=503, detail="Cache still loading")
+        return []
     
     if not brand and not model:
         raise HTTPException(status_code=400, detail="Either brand or model required")
@@ -451,7 +446,7 @@ async def get_satisfaction(
 ):
     """Get satisfaction by aspect - FROM CACHE"""
     if not _cache.is_ready():
-        raise HTTPException(status_code=503, detail="Cache still loading")
+        return []
     
     if not brand and not model:
         raise HTTPException(status_code=400, detail="Either brand or model required")
@@ -513,7 +508,7 @@ async def get_demographics(
 ):
     """Get persona and intent breakdown - FROM CACHE"""
     if not _cache.is_ready():
-        raise HTTPException(status_code=503, detail="Cache still loading")
+        return {"persona": [], "gender": []}
     
     if not brand and not model:
         raise HTTPException(status_code=400, detail="Either brand or model required")
@@ -552,7 +547,7 @@ async def compare_items(
 ):
     """Compare brands or models - FROM CACHE"""
     if not _cache.is_ready():
-        raise HTTPException(status_code=503, detail="Cache still loading")
+        return {}
     
     item_list = [i.strip() for i in items.split(",") if i.strip()]
     if len(item_list) < 2:
@@ -646,7 +641,7 @@ async def get_features(
 ):
     """Get top features sought - FROM CACHE"""
     if not _cache.is_ready():
-        raise HTTPException(status_code=503, detail="Cache still loading")
+        return []
     
     df = _cache.rd_insights.copy()
     df = df[df['features_sought'].notna() & (df['features_sought'] != '')]
@@ -669,7 +664,7 @@ async def get_features(
 async def get_stats():
     """Get overall dataset stats - FROM CACHE"""
     if not _cache.is_ready():
-        raise HTTPException(status_code=503, detail="Cache still loading")
+        return {"brands": 0, "models": 0, "total_aspects": 0, "avg_satisfaction": 0, "total_reviews": 0}
     
     df = _cache.aspects
     
@@ -704,7 +699,7 @@ async def get_sample_reviews(
 ):
     """Get sample review comments - FROM CACHE"""
     if not _cache.is_ready():
-        raise HTTPException(status_code=503, detail="Cache still loading")
+        return {"reviews": [], "aspect": aspect, "count": 0}
     
     if not aspect:
         raise HTTPException(status_code=400, detail="Aspect is required")
@@ -791,7 +786,7 @@ async def get_rd_insights(
 ):
     """Get R&D insights - FROM CACHE"""
     if not _cache.is_ready():
-        raise HTTPException(status_code=503, detail="Cache still loading")
+        return {"insights": [], "categorized": {}, "total": 0}
     
     if not brand and not model:
         raise HTTPException(status_code=400, detail="Either brand or model required")
@@ -878,6 +873,44 @@ async def authenticate(request: AuthRequest):
         return {"success": True, "message": "Full access granted"}
     else:
         return {"success": False, "message": "Invalid key"}
+
+# ─────────────────────────────────────────
+# CACHE REFRESH ENDPOINT
+# ─────────────────────────────────────────
+@app.get("/api/refresh-cache")
+async def refresh_cache(key: Optional[str] = None):
+    """
+    Refresh the in-memory cache from BigQuery.
+    Usage: /api/refresh-cache?key=YOUR_ADMIN_KEY
+    Or just redeploy the app.
+    """
+    admin_key = os.environ.get("SMAARTBRAND_ADMIN_KEY", "")
+    
+    # Require admin key if configured
+    if admin_key and key != admin_key:
+        raise HTTPException(status_code=401, detail="Invalid key")
+    
+    import time
+    old_counts = dict(_cache.row_counts)
+    
+    # Reset cache
+    _cache.aspects = None
+    _cache.reviews = None
+    _cache.rd_insights = None
+    _cache.product_master = None
+    _cache.loaded = False
+    _cache.row_counts = {}
+    
+    # Reload
+    load_all_data_parallel()
+    
+    return {
+        "success": True,
+        "message": "Cache refreshed",
+        "load_time": f"{_cache.load_time:.2f}s",
+        "old_counts": old_counts,
+        "new_counts": _cache.row_counts
+    }
 
 # ─────────────────────────────────────────
 # CHAT API - Data Agent Integration (CACHED)
