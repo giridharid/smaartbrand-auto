@@ -29,19 +29,29 @@ DATASET = "auto"
 
 def init_client():
     global client
-    creds_b64 = os.environ.get("GOOGLE_CREDENTIALS_BASE64", "")
-    if not creds_b64:
-        print("[ERROR] No GOOGLE_CREDENTIALS_BASE64 found")
+    gcp_creds = os.environ.get("GCP_CREDENTIALS_JSON", "")
+    
+    if not gcp_creds:
+        print("[ERROR] GCP_CREDENTIALS_JSON not set")
         return
     
+    gcp_creds = gcp_creds.strip().strip('"').strip("'")
+    
     try:
-        creds_json = base64.b64decode(creds_b64).decode('utf-8')
-        creds_dict = json.loads(creds_json)
+        if gcp_creds.startswith("{"):
+            creds_dict = json.loads(gcp_creds)
+        else:
+            padding = 4 - len(gcp_creds) % 4
+            if padding != 4:
+                gcp_creds += "=" * padding
+            decoded = base64.b64decode(gcp_creds).decode('utf-8')
+            creds_dict = json.loads(decoded)
+        
         credentials = service_account.Credentials.from_service_account_info(creds_dict)
-        client = bigquery.Client(credentials=credentials, project=PROJECT)
-        print(f"[SUCCESS] BigQuery client initialized")
+        client = bigquery.Client(credentials=credentials, project=credentials.project_id)
+        print(f"[SUCCESS] BigQuery client initialized for project: {credentials.project_id}")
     except Exception as e:
-        print(f"[ERROR] Failed to init BigQuery: {e}")
+        print(f"[ERROR] Credential error: {e}")
         traceback.print_exc()
 
 @app.on_event("startup")
