@@ -242,6 +242,7 @@ def _load_table(table_name: str, query: str) -> tuple:
         return table_name, df
     except Exception as e:
         print(f"[CACHE ERROR] Failed to load {table_name}: {e}")
+        traceback.print_exc()
         return table_name, None
 
 def load_all_data_parallel():
@@ -261,28 +262,43 @@ def load_all_data_parallel():
     
     print(f"[CACHE] Starting parallel load of {len(queries)} tables...")
     
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = [
-            executor.submit(_load_table, name, query)
-            for name, query in queries.items()
-        ]
+    try:
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = [
+                executor.submit(_load_table, name, query)
+                for name, query in queries.items()
+            ]
+            
+            for future in futures:
+                try:
+                    table_name, df = future.result(timeout=60)  # 60 second timeout per table
+                    if df is not None:
+                        setattr(_cache, table_name, df)
+                        _cache.row_counts[table_name] = len(df)
+                except Exception as e:
+                    print(f"[CACHE ERROR] Future failed: {e}")
         
-        for future in futures:
-            table_name, df = future.result()
-            if df is not None:
-                setattr(_cache, table_name, df)
-                _cache.row_counts[table_name] = len(df)
-    
-    _cache.loaded = True
-    _cache.load_time = time.time() - start
-    
-    print(f"[CACHE] ✅ All data loaded in {_cache.load_time:.2f}s")
-    print(f"[CACHE] Row counts: {_cache.row_counts}")
+        _cache.loaded = True
+        _cache.load_time = time.time() - start
+        
+        print(f"[CACHE] ✅ All data loaded in {_cache.load_time:.2f}s")
+        print(f"[CACHE] Row counts: {_cache.row_counts}")
+    except Exception as e:
+        print(f"[CACHE ERROR] Parallel load failed: {e}")
+        traceback.print_exc()
+
+def load_cache_background():
+    """Load cache in background thread so app starts immediately"""
+    import threading
+    thread = threading.Thread(target=load_all_data_parallel, daemon=True)
+    thread.start()
 
 @app.on_event("startup")
 async def startup():
     init_client()
-    load_all_data_parallel()
+    # Load cache in background - app responds to health checks immediately
+    load_cache_background()
+    print("[STARTUP] App ready, cache loading in background...")
 
 # ─────────────────────────────────────────
 # CONFIG ENDPOINT
@@ -320,11 +336,11 @@ async def logo():
 @app.get("/health")
 async def health():
     return {
-        "status": "healthy" if _cache.is_ready() else "loading",
-        "database": "cached" if _cache.is_ready() else "loading",
+        "status": "healthy",
+        "cache_status": "ready" if _cache.is_ready() else "loading",
         "vehicle_type": VEHICLE_TYPE,
         "cache_loaded": _cache.loaded,
-        "row_counts": _cache.row_counts
+        "row_counts": _cache.row_counts if _cache.loaded else {}
     }
 
 @app.get("/api/brands")
