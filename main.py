@@ -94,13 +94,14 @@ async def test_load():
         df = client.query(query).to_dataframe()
         elapsed = time.time() - start
         
-        brands = df['brand'].dropna().unique().tolist()
+        brands = sorted(df['brand'].dropna().unique().tolist())
         
         return {
             "success": True, 
             "rows": len(df), 
             "load_time": f"{elapsed:.2f}s",
-            "brands": sorted(brands)[:10]
+            "brand_count": len(brands),
+            "brands": brands
         }
     except Exception as e:
         traceback.print_exc()
